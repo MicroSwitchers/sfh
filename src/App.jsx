@@ -854,7 +854,7 @@ export default function App() {
       <div ref={containerRef} className="absolute inset-0 z-0">
         {!image && paths.current.length === 0 && (
           <div
-            className="absolute top-0 bottom-0 left-0 flex flex-col items-center justify-center opacity-40 pointer-events-none"
+            className="absolute top-0 bottom-0 left-0 flex flex-col items-center justify-center opacity-40 pointer-events-none z-10"
             style={{ width: isComparing ? `${sliderPos * 100}%` : '100%' }}
           >
             <ImageIcon size={48} className="mb-2" />
