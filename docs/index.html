@@ -24,6 +24,9 @@
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
 
+                        // Force a check on load
+                        registration.update();
+
                         // Check for updates periodically
                         registration.onupdatefound = () => {
                             const installingWorker = registration.installing;
@@ -667,6 +670,11 @@
                 width: 80px;
             }
 
+            /* Magnet slider specific for mobile */
+            .mag-slider {
+                width: 60px !important;
+            }
+
             /* Splash screen */
             .splash-title {
                 font-size: 24px;
@@ -1145,8 +1153,8 @@
                             style="display:none; align-items:center; gap:6px; margin-left:8px; padding-left:8px; border-left:1px solid var(--border-btn);">
                             <span
                                 style="font-size:10px; font-weight:bold; color:var(--text-muted); letter-spacing:1px;">MAG</span>
-                            <input type="range" min="0" max="100" value="80" title="Magnet Strength"
-                                oninput="app.setMagnetStrength(this.value)" style="width:100px;">
+                            <input type="range" class="mag-slider" min="0" max="100" value="80" title="Magnet Strength"
+                                oninput="app.setMagnetStrength(this.value)">
                         </div>
 
                         <div style="width:1px; height:24px; background:var(--border-btn); margin:0 8px;"></div>
