@@ -56,9 +56,13 @@
             prompt.classList.add('visible');
         }
 
+        }
+
         function updateApp() {
             if (waitingWorker) {
                 waitingWorker.postMessage({ action: 'skipWaiting' });
+            } else {
+                window.location.reload();
             }
         }
     </script>
@@ -535,6 +539,8 @@
             overflow: hidden;
             padding: 0 20px;
             text-align: center;
+            transition: opacity 0.2s ease;
+        }
         }
 
         .empty-state p {
@@ -692,6 +698,10 @@
                 font-size: 9px;
                 padding-bottom: 4px;
                 margin-bottom: 2px;
+            }
+
+            .tools-container span {
+                display: none;
             }
         }
 
@@ -1953,11 +1963,20 @@
 
                     // Adjust left empty message width
                     document.getElementById('empty-message-left').style.width = (this.sliderPos * 100) + '%';
+
+                    // Opacity fade when too narrow
+                    const totalW = window.innerWidth;
+                    const leftW = totalW * this.sliderPos;
+                    const rightW = totalW * (1 - this.sliderPos);
+                    document.getElementById('empty-message-left').style.opacity = leftW < 120 ? '0' : '1';
+                    rightMsg.style.opacity = rightW < 120 ? '0' : '1';
+
                 } else {
                     document.getElementById('empty-message-right').style.display = 'none';
                     document.getElementById('drawer-right').style.display = 'none';
                     document.getElementById('compare-slider').style.display = 'none';
                     document.getElementById('empty-message-left').style.width = '100%';
+                    document.getElementById('empty-message-left').style.opacity = '1';
                 }
 
                 // Buttons
