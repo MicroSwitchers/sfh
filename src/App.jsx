@@ -286,7 +286,7 @@ export default function App() {
     const perpX = hasDirection ? -dirY : 0;
     const perpY = hasDirection ? dirX : 0;
 
-    const r = 8;
+    const r = 20; // Increased search radius for more obvious snapping
     const startX = Math.max(1, imgX - r);
     const startY = Math.max(1, imgY - r);
     const endX = Math.min(targetImage.width - 1, imgX + r);
@@ -298,11 +298,12 @@ export default function App() {
     if (analysisImageRef.current !== targetImage) {
       ac.width = targetImage.width;
       ac.height = targetImage.height;
-      ac.getContext('2d').drawImage(targetImage, 0, 0);
+      const initCtx = ac.getContext('2d', { willReadFrequently: true });
+      initCtx.drawImage(targetImage, 0, 0);
       analysisImageRef.current = targetImage;
     }
 
-    const ctx = ac.getContext('2d');
+    const ctx = ac.getContext('2d', { willReadFrequently: true });
     const padStartX = Math.max(0, startX - 1);
     const padStartY = Math.max(0, startY - 1);
     const padW = Math.min(targetImage.width, endX + 2) - padStartX;
@@ -374,8 +375,8 @@ export default function App() {
 
     if (maxScore < 5) return { x: worldX, y: worldY };
 
-    // Clamp snap so it never leaps more than 6px from cursor
-    const maxSnap = 6;
+    // Clamp snap so it never leaps more than 15px from cursor
+    const maxSnap = 15; // Increased for more obvious effect
     let snapX = bestX - targetImage.width / 2;
     let snapY = bestY - targetImage.height / 2;
     const snapDx = snapX - worldX;
@@ -454,6 +455,11 @@ export default function App() {
   const getCenter = (p1, p2) => ({ x: (p1.clientX + p2.clientX) / 2, y: (p1.clientY + p2.clientY) / 2 });
 
   const handlePointerDown = (e) => {
+    // Prevent default touch behavior for better drawing experience
+    if (e.pointerType === 'touch') {
+      e.preventDefault();
+    }
+
     // Middle mouse button panning
     if (e.button === 1) {
       e.preventDefault();
@@ -497,7 +503,8 @@ export default function App() {
 
         if (tool === 'magnet' && targetImg) {
           const snapped = snapToEdge(wp.x, wp.y, targetImg, null);
-          wp = { x: wp.x * 0.3 + snapped.x * 0.7, y: wp.y * 0.3 + snapped.y * 0.7 };
+          // Stronger snap: use 90% snapped position, 10% original
+          wp = { x: wp.x * 0.1 + snapped.x * 0.9, y: wp.y * 0.1 + snapped.y * 0.9 };
         }
 
         const newPath = { points: [wp], color, size, isEraser: tool === 'eraser' };
@@ -510,6 +517,11 @@ export default function App() {
   };
 
   const handlePointerMove = (e) => {
+    // Prevent default touch behavior for better drawing experience
+    if (e.pointerType === 'touch') {
+      e.preventDefault();
+    }
+
     // Middle mouse panning
     if (isMiddleMousePanning.current) {
       const last = middleMouseLastPos.current;
@@ -568,21 +580,22 @@ export default function App() {
           if (tool === 'magnet' && targetImg) {
             const rawWp = { x: wp.x, y: wp.y }; // Save raw cursor position
             const snapped = snapToEdge(wp.x, wp.y, targetImg, targetPath.points);
-            wp = { x: wp.x * 0.2 + snapped.x * 0.8, y: wp.y * 0.2 + snapped.y * 0.8 };
+            // Much stronger snap: use 95% snapped position
+            wp = { x: wp.x * 0.05 + snapped.x * 0.95, y: wp.y * 0.05 + snapped.y * 0.95 };
 
-            // Light smoothing with last 2 points only
+            // Minimal smoothing to preserve snap effect
             const pp = targetPath.points;
             if (pp.length >= 1) {
               const last = pp[pp.length - 1];
-              wp = { x: wp.x * 0.7 + last.x * 0.3, y: wp.y * 0.7 + last.y * 0.3 };
+              wp = { x: wp.x * 0.9 + last.x * 0.1, y: wp.y * 0.9 + last.y * 0.1 };
             }
 
-            // Hard clamp: never drift more than 4px from the raw cursor
-            // This prevents spirals — the line is always anchored to where the user is pointing
+            // Allow more drift for stronger magnetic effect
+            // This lets the line really stick to edges
             const driftX = wp.x - rawWp.x;
             const driftY = wp.y - rawWp.y;
             const driftDist = Math.hypot(driftX, driftY);
-            const maxDrift = 4;
+            const maxDrift = 12; // Increased from 4 to allow stronger snapping
             if (driftDist > maxDrift) {
               const s = maxDrift / driftDist;
               wp = { x: rawWp.x + driftX * s, y: rawWp.y + driftY * s };
@@ -841,9 +854,9 @@ export default function App() {
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`w-12 h-12 flex items-center justify-center bg-neutral-800 rounded-full shadow-lg border border-neutral-600 transition-transform active:scale-95 disabled:opacity-40 disabled:scale-100 hover:shadow-xl hover:bg-neutral-700 ${colorClass}`}
+      className={`w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-neutral-800 rounded-full shadow-lg border border-neutral-600 transition-transform active:scale-95 disabled:opacity-40 disabled:scale-100 hover:shadow-xl hover:bg-neutral-700 ${colorClass}`}
     >
-      <Icon size={20} />
+      <Icon size={18} className="sm:w-5 sm:h-5" />
     </button>
   );
 
@@ -864,6 +877,7 @@ export default function App() {
         <canvas
           ref={canvasRef}
           className="block touch-none"
+          style={{ touchAction: 'none', willChange: 'transform' }}
           onContextMenu={(e) => e.preventDefault()}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -926,10 +940,10 @@ export default function App() {
       </div>
 
       {/* LEFT DRAWER (Workspace Actions) */}
-      <div className={`absolute top-20 left-0 z-30 flex items-start transition-transform duration-300 ease-in-out ${leftOpen ? 'translate-x-0' : '-translate-x-[calc(100%-24px)]'}`}>
+      <div className={`absolute top-12 sm:top-20 left-0 z-30 flex items-start transition-transform duration-300 ease-in-out ${leftOpen ? 'translate-x-0' : '-translate-x-[calc(100%-20px)]'}`}>
         {/* Panel Content */}
-        <div className="bg-neutral-900/95 border-y border-r border-neutral-700 rounded-r-2xl p-3 shadow-2xl backdrop-blur-md flex flex-col gap-3 pointer-events-auto">
-          <div className="text-[10px] uppercase font-bold text-gray-400 text-center tracking-wider pb-1 border-b border-neutral-700">My Image</div>
+        <div className="bg-neutral-900/95 border-y border-r border-neutral-700 rounded-r-2xl p-2 sm:p-3 shadow-2xl backdrop-blur-md flex flex-col gap-2 sm:gap-3 pointer-events-auto">
+          <div className="text-[9px] sm:text-[10px] uppercase font-bold text-gray-400 text-center tracking-wider pb-1 border-b border-neutral-700">My Image</div>
 
           <ActionButton
             onClick={() => fileInputRef.current?.click()}
@@ -937,14 +951,14 @@ export default function App() {
             colorClass="text-blue-600 hover:text-blue-700"
             title="Choose an Image"
           />
-          <div className="w-full h-px bg-neutral-700 my-1"></div>
+          <div className="w-full h-px bg-neutral-700 my-0.5 sm:my-1"></div>
 
           <ActionButton onClick={handleSave} icon={Download} colorClass="text-green-600 hover:text-green-700" title="Save My Highlighted Image" />
           <ActionButton onClick={handleUndo} disabled={history.current.length === 0} icon={Undo} title="Undo (Ctrl+Z)" />
           <ActionButton onClick={handleRedo} disabled={redoStack.current.length === 0} icon={Redo} colorClass="text-gray-300 hover:text-white" title="Redo (Ctrl+Y)" />
           <ActionButton onClick={handleClear} icon={Trash2} colorClass="text-red-500 hover:text-red-600" title="Clear All Drawings" />
 
-          <div className="w-full h-px bg-neutral-700 my-1"></div>
+          <div className="w-full h-px bg-neutral-700 my-0.5 sm:my-1"></div>
 
           <ActionButton
             onClick={toggleCompare}
@@ -957,21 +971,21 @@ export default function App() {
         {/* Handle */}
         <button
           onClick={() => setLeftOpen(!leftOpen)}
-          className="mt-4 pointer-events-auto w-8 h-16 bg-neutral-900/95 border-y border-r border-neutral-700 rounded-r-xl flex items-center justify-center text-gray-400 hover:text-gray-200 shadow-md active:bg-neutral-800"
+          className="mt-3 sm:mt-4 pointer-events-auto w-6 sm:w-8 h-12 sm:h-16 bg-neutral-900/95 border-y border-r border-neutral-700 rounded-r-xl flex items-center justify-center text-gray-400 hover:text-gray-200 shadow-md active:bg-neutral-800"
         >
-          {leftOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+          {leftOpen ? <ChevronLeft size={16} className="sm:w-[18px] sm:h-[18px]" /> : <ChevronRight size={16} className="sm:w-[18px] sm:h-[18px]" />}
         </button>
       </div>
 
       {/* RIGHT DRAWER (Comparative Actions) */}
       {isComparing && sliderPos < 0.85 && (
-        <div className={`absolute top-20 right-0 z-30 flex flex-row-reverse items-start transition-transform duration-300 ease-in-out ${rightOpen ? 'translate-x-0' : 'translate-x-[calc(100%-24px)]'}`}>
+        <div className={`absolute top-12 sm:top-20 right-0 z-30 flex flex-row-reverse items-start transition-transform duration-300 ease-in-out ${rightOpen ? 'translate-x-0' : 'translate-x-[calc(100%-20px)]'}`}>
           {/* Panel Content */}
-          <div className="bg-neutral-900/95 border-y border-l border-neutral-700 rounded-l-2xl p-3 shadow-2xl backdrop-blur-md flex flex-col gap-3 pointer-events-auto">
-            <div className="text-[10px] uppercase font-bold text-gray-400 text-center tracking-wider pb-1 border-b border-neutral-700">Compare</div>
+          <div className="bg-neutral-900/95 border-y border-l border-neutral-700 rounded-l-2xl p-2 sm:p-3 shadow-2xl backdrop-blur-md flex flex-col gap-2 sm:gap-3 pointer-events-auto">
+            <div className="text-[9px] sm:text-[10px] uppercase font-bold text-gray-400 text-center tracking-wider pb-1 border-b border-neutral-700">Compare</div>
 
             <ActionButton onClick={() => refInputRef.current?.click()} icon={ImageIcon} colorClass="text-blue-500 hover:text-blue-600" title="Choose Comparison Image" />
-            <div className="w-full h-px bg-neutral-700 my-1"></div>
+            <div className="w-full h-px bg-neutral-700 my-0.5 sm:my-1"></div>
 
             <ActionButton onClick={handleSaveRef} icon={Download} colorClass="text-green-600 hover:text-green-700" title="Save Comparison Image" />
             <ActionButton onClick={handleRefUndo} disabled={refHistory.current.length === 0} icon={Undo} title="Undo Last Drawing" />
@@ -982,35 +996,35 @@ export default function App() {
           {/* Handle */}
           <button
             onClick={() => setRightOpen(!rightOpen)}
-            className="mt-4 pointer-events-auto w-8 h-16 bg-neutral-900/95 border-y border-l border-neutral-700 rounded-l-xl flex items-center justify-center text-gray-400 hover:text-gray-200 shadow-md active:bg-neutral-800"
+            className="mt-3 sm:mt-4 pointer-events-auto w-6 sm:w-8 h-12 sm:h-16 bg-neutral-900/95 border-y border-l border-neutral-700 rounded-l-xl flex items-center justify-center text-gray-400 hover:text-gray-200 shadow-md active:bg-neutral-800"
           >
-            {rightOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            {rightOpen ? <ChevronRight size={16} className="sm:w-[18px] sm:h-[18px]" /> : <ChevronLeft size={16} className="sm:w-[18px] sm:h-[18px]" />}
           </button>
         </div>
       )}
 
       {/* BOTTOM DRAWER (Tools) */}
-      <div className={`absolute bottom-0 left-0 right-0 z-30 flex flex-col items-center transition-transform duration-300 ease-in-out ${bottomOpen ? 'translate-y-0' : 'translate-y-[calc(100%-24px)]'}`}>
+      <div className={`absolute bottom-0 left-0 right-0 z-30 flex flex-col items-center transition-transform duration-300 ease-in-out ${bottomOpen ? 'translate-y-0' : 'translate-y-[calc(100%-20px)]'}`}>
 
         {/* Handle */}
         <button
           onClick={() => setBottomOpen(!bottomOpen)}
-          className="pointer-events-auto w-20 h-8 bg-neutral-900/95 border-t border-x border-neutral-700 rounded-t-xl flex items-center justify-center text-gray-400 hover:text-gray-200 shadow-md active:bg-neutral-800 mb-[-1px] z-10"
+          className="pointer-events-auto w-16 sm:w-20 h-6 sm:h-8 bg-neutral-900/95 border-t border-x border-neutral-700 rounded-t-xl flex items-center justify-center text-gray-400 hover:text-gray-200 shadow-md active:bg-neutral-800 mb-[-1px] z-10"
         >
-          {bottomOpen ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
+          {bottomOpen ? <ChevronDown size={16} className="sm:w-[18px] sm:h-[18px]" /> : <ChevronUp size={16} className="sm:w-[18px] sm:h-[18px]" />}
         </button>
 
         {/* Panel Content */}
-        <div className="w-full bg-neutral-900/95 border-t border-neutral-700 p-4 pb-6 shadow-2xl backdrop-blur-md pointer-events-auto">
-          <div className="max-w-md mx-auto flex flex-col gap-4">
+        <div className="w-full bg-neutral-900/95 border-t border-neutral-700 p-2 pb-3 sm:p-4 sm:pb-6 shadow-2xl backdrop-blur-md pointer-events-auto">
+          <div className="max-w-md mx-auto flex flex-col gap-2 sm:gap-4">
             {/* Colors */}
             <div className="flex items-center justify-between gap-2">
-              <div className="flex gap-3 overflow-x-auto no-scrollbar py-1 flex-1 justify-center">
+              <div className="flex gap-2 sm:gap-3 overflow-x-auto no-scrollbar py-1 flex-1 justify-center">
                 {COLORS.map(c => (
                   <button
                     key={c.name}
                     onClick={() => { setColor(c.value); setTool('pen'); }}
-                    className={`w-11 h-11 rounded-full border-2 shrink-0 transition-transform ${color === c.value && tool !== 'eraser' ? 'border-gray-400 scale-110 shadow-lg' : 'border-transparent opacity-60'}`}
+                    className={`w-8 h-8 sm:w-11 sm:h-11 rounded-full border-2 shrink-0 transition-transform ${color === c.value && tool !== 'eraser' ? 'border-gray-400 scale-110 shadow-lg' : 'border-transparent opacity-60'}`}
                     style={{ backgroundColor: c.value }}
                   />
                 ))}
@@ -1018,12 +1032,12 @@ export default function App() {
             </div>
 
             {/* Tools & Size */}
-            <div className="flex items-center gap-4 bg-neutral-800 rounded-xl p-2 px-4">
-              <div className="flex gap-2 shrink-0">
-                <button onClick={() => setTool('pen')} title="Draw freely" className={`p-3 rounded-xl transition-colors ${tool === 'pen' ? 'bg-gray-500 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}><PenTool size={22} /></button>
-                <button onClick={() => setTool('magnet')} title="Highlight Helper - Snaps to edges" className={`p-3 rounded-xl transition-colors ${tool === 'magnet' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}><Wand2 size={22} /></button>
-                <button onClick={() => setTool('eraser')} title="Erase drawings" className={`p-3 rounded-xl transition-colors ${tool === 'eraser' ? 'bg-red-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}><Eraser size={22} /></button>
-                <button onClick={() => setTool('hand')} title="Move and zoom image" className={`p-3 rounded-xl transition-colors ${tool === 'hand' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}><Hand size={22} /></button>
+            <div className="flex items-center gap-2 sm:gap-4 bg-neutral-800 rounded-xl p-1.5 sm:p-2 px-2 sm:px-4">
+              <div className="flex gap-1 sm:gap-2 shrink-0">
+                <button onClick={() => setTool('pen')} title="Draw freely" className={`p-2 sm:p-3 rounded-xl transition-colors ${tool === 'pen' ? 'bg-gray-500 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}><PenTool size={18} className="sm:w-[22px] sm:h-[22px]" /></button>
+                <button onClick={() => setTool('magnet')} title="Highlight Helper - Snaps to edges" className={`p-2 sm:p-3 rounded-xl transition-colors ${tool === 'magnet' ? 'bg-purple-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}><Wand2 size={18} className="sm:w-[22px] sm:h-[22px]" /></button>
+                <button onClick={() => setTool('eraser')} title="Erase drawings" className={`p-2 sm:p-3 rounded-xl transition-colors ${tool === 'eraser' ? 'bg-red-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}><Eraser size={18} className="sm:w-[22px] sm:h-[22px]" /></button>
+                <button onClick={() => setTool('hand')} title="Move and zoom image" className={`p-2 sm:p-3 rounded-xl transition-colors ${tool === 'hand' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}><Hand size={18} className="sm:w-[22px] sm:h-[22px]" /></button>
               </div>
               <input
                 type="range" min="2" max="60"
