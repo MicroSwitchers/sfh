@@ -301,6 +301,23 @@
             -webkit-backdrop-filter: blur(8px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
             border: 1px solid var(--border-btn);
+            overflow-x: auto;
+            max-width: 95vw;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .tools-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Ensure inputs don't shrink too much */
+        .tools-container input[type=range] {
+            flex-shrink: 0;
+        }
+
+        .tools-container span {
+            white-space: nowrap;
         }
 
         .tool-btn {
@@ -327,12 +344,7 @@
 
 
         /* Colors */
-        .color-row {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 8px;
-            justify-content: center;
-        }
+
 
         .color-swatch {
             width: 40px;
@@ -341,6 +353,23 @@
             border: 2px solid transparent;
             cursor: pointer;
             transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .color-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+            overflow-x: auto;
+            max-width: 100%;
+            padding: 4px 16px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        .color-row::-webkit-scrollbar {
+            display: none;
         }
 
         .color-swatch.active {
@@ -827,7 +856,7 @@
                         <div style="display:flex; align-items:center; gap:6px;">
                             <span
                                 style="font-size:10px; font-weight:bold; color:var(--text-muted); letter-spacing:1px;">SIZE</span>
-                            <input type="range" min="2" max="60" value="12" oninput="app.setSize(this.value)"
+                            <input type="range" min="2" max="60" value="24" oninput="app.setSize(this.value)"
                                 title="Brush Size" style="width:120px;">
                         </div>
                     </div>
@@ -869,7 +898,7 @@
             sliderPos: 0.5,
             tool: 'pen',
             color: '#FF4444',
-            size: 12,
+            size: 24,
             magnetStrength: 0.8, // Default 80%
             drawers: { left: true, right: true, bottom: true },
 
@@ -1314,8 +1343,8 @@
                 const iy = Math.round(wy + h / 2);
 
                 // Parameters (Balanced)
-                const radius = 20; // Increased radius
-                const maxSnap = 20;
+                const radius = 40; // Increased radius for better finding
+                const maxSnap = 40;
 
                 // Bounds check
                 if (ix < -radius || ix > w + radius || iy < -radius || iy > h + radius) return { x: wx, y: wy };
@@ -1364,7 +1393,7 @@
                         const gy = getLum(x, y + 1) - getLum(x, y - 1);
                         const mag = Math.sqrt(gx * gx + gy * gy);
 
-                        if (mag < 10) continue; // Threshold
+                        if (mag < 5) continue; // Lower Threshold to find fainter edges
 
                         // Distance penalty
                         const realX = sx + x;
@@ -1373,7 +1402,7 @@
                         const dy = realY - iy;
                         const dist = Math.sqrt(dx * dx + dy * dy);
 
-                        const score = mag - (dist * 1.0); // Prefer closer strong edges, reduced penalty
+                        const score = mag - (dist * 0.5); // Prefer closer strong edges, reduced penalty
 
                         if (score > maxScore) {
                             maxScore = score;
