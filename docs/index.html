@@ -1517,11 +1517,10 @@
                     if (this.tool === 'magnet') {
                         const img = side === 'right' ? this.imageRight : this.imageLeft;
                         if (img) {
-                            const snapped = this.snapToEdge(wp.x, wp.y, img);
-                            // Balanced Start: mix based on strength
-                            const strength = this.magnetStrength;
-                            wp.x = wp.x * (1 - strength) + snapped.x * strength;
-                            wp.y = wp.y * (1 - strength) + snapped.y * strength;
+                            // On first point, we don't have a direction yet.
+                            // We can try to snap to nearest edge using a simple localized search
+                            // or just start at the finger. Starting at finger is safer/less jumpy.
+                            // Let's just use the raw point for the initial touch.
                         }
                     }
 
