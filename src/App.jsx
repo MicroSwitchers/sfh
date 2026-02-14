@@ -286,7 +286,7 @@ export default function App() {
     const perpX = hasDirection ? -dirY : 0;
     const perpY = hasDirection ? dirX : 0;
 
-    const r = 20; // Increased search radius for more obvious snapping
+    const r = 15; // Balanced search radius - not too aggressive
     const startX = Math.max(1, imgX - r);
     const startY = Math.max(1, imgY - r);
     const endX = Math.min(targetImage.width - 1, imgX + r);
@@ -375,8 +375,8 @@ export default function App() {
 
     if (maxScore < 5) return { x: worldX, y: worldY };
 
-    // Clamp snap so it never leaps more than 15px from cursor
-    const maxSnap = 15; // Increased for more obvious effect
+    // Clamp snap so it never leaps more than 10px from cursor
+    const maxSnap = 10; // Balanced for visible but not jumpy effect
     let snapX = bestX - targetImage.width / 2;
     let snapY = bestY - targetImage.height / 2;
     const snapDx = snapX - worldX;
@@ -503,8 +503,8 @@ export default function App() {
 
         if (tool === 'magnet' && targetImg) {
           const snapped = snapToEdge(wp.x, wp.y, targetImg, null);
-          // Stronger snap: use 90% snapped position, 10% original
-          wp = { x: wp.x * 0.1 + snapped.x * 0.9, y: wp.y * 0.1 + snapped.y * 0.9 };
+          // Moderate snap: use 70% snapped position, 30% original
+          wp = { x: wp.x * 0.3 + snapped.x * 0.7, y: wp.y * 0.3 + snapped.y * 0.7 };
         }
 
         const newPath = { points: [wp], color, size, isEraser: tool === 'eraser' };
@@ -580,22 +580,28 @@ export default function App() {
           if (tool === 'magnet' && targetImg) {
             const rawWp = { x: wp.x, y: wp.y }; // Save raw cursor position
             const snapped = snapToEdge(wp.x, wp.y, targetImg, targetPath.points);
-            // Much stronger snap: use 95% snapped position
-            wp = { x: wp.x * 0.05 + snapped.x * 0.95, y: wp.y * 0.05 + snapped.y * 0.95 };
+            // Moderate snap: use 70% snapped position to avoid jumping
+            wp = { x: wp.x * 0.3 + snapped.x * 0.7, y: wp.y * 0.3 + snapped.y * 0.7 };
 
-            // Minimal smoothing to preserve snap effect
+            // Strong smoothing to resist sharp turns and jumps
             const pp = targetPath.points;
             if (pp.length >= 1) {
               const last = pp[pp.length - 1];
-              wp = { x: wp.x * 0.9 + last.x * 0.1, y: wp.y * 0.9 + last.y * 0.1 };
+              // Use 40% of previous point to create momentum and resist sharp changes
+              wp = { x: wp.x * 0.6 + last.x * 0.4, y: wp.y * 0.6 + last.y * 0.4 };
             }
 
-            // Allow more drift for stronger magnetic effect
-            // This lets the line really stick to edges
+            // Additional smoothing with second-to-last point for even more stability
+            if (pp.length >= 2) {
+              const secondLast = pp[pp.length - 2];
+              wp = { x: wp.x * 0.85 + secondLast.x * 0.15, y: wp.y * 0.85 + secondLast.y * 0.15 };
+            }
+
+            // Moderate drift limit to prevent jumping while allowing edge following
             const driftX = wp.x - rawWp.x;
             const driftY = wp.y - rawWp.y;
             const driftDist = Math.hypot(driftX, driftY);
-            const maxDrift = 12; // Increased from 4 to allow stronger snapping
+            const maxDrift = 6; // Reduced to prevent severe jumps
             if (driftDist > maxDrift) {
               const s = maxDrift / driftDist;
               wp = { x: rawWp.x + driftX * s, y: rawWp.y + driftY * s };
