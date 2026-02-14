@@ -2,17 +2,1686 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-    <meta name="description"
-        content="CVI Salient Feature Highlighting - A layered canvas tool for visual highlighting and comparison" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>Salient Feature Highlighter (SFH)</title>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Trace and highlight features on images for comparative language discussions.">
+    <meta name="theme-color" content="#111111">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Salient Feature Highlighter</title>
+
+    <!-- PWA Assets -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+    <style>
+        :root {
+            --bg-color: #111111;
+            --panel-bg: rgba(23, 23, 23, 0.95);
+            --border-color: #404040;
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+
+            /* UI Elements */
+            --surface-btn: #262626;
+            --surface-btn-hover: #333333;
+            --border-btn: #525252;
+            --border-handle: #666666;
+            --overlay-tools: rgba(40, 40, 40, 0.5);
+
+            /* Accents */
+            --accent-blue: #2563eb;
+            --accent-purple: #9333ea;
+            --accent-green: #16a34a;
+            --accent-red: #dc2626;
+
+            /* Palette for Drawing */
+            --palette-red: #FF4444;
+            --palette-orange: #FF8833;
+            --palette-yellow: #FFD700;
+            --palette-green: #44DD44;
+            --palette-blue: #4488FF;
+            --palette-purple: #BB66FF;
+            --palette-white: #FFFFFF;
+            --palette-black: #000000;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Layout */
+        #app-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            touch-action: none;
+        }
+
+        /* UI Overlay Layers */
+        .ui-layer {
+            position: absolute;
+            pointer-events: none;
+            z-index: 60;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        .pointer-events-auto {
+            pointer-events: auto;
+        }
+
+        /* Drawers */
+        .drawer {
+            position: absolute;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
+            display: flex;
+        }
+
+        .drawer-content {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .drawer-handle {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        .drawer-handle:hover {
+            color: var(--text-main);
+        }
+
+        .drawer-handle:active {
+            background: var(--surface-btn);
+        }
+
+        /* Left Drawer */
+        #drawer-left {
+            top: 80px;
+            left: 0;
+            flex-direction: row;
+        }
+
+        #drawer-left.closed {
+            transform: translateX(calc(-100% + 0px));
+        }
+
+        /* Actually we want to hide the content but keep handle visible? 
+           The original app translates -100% + 20px overlap or attaches handle to side.
+           Let's mimic: The handle is OUTSIDE the translation container in standard CSS 
+           or the container includes the handle.
+           Let's structure: [Content][Handle] -> translate based on Content width.
+        */
+
+        #drawer-left .drawer-content {
+            border-left: none;
+            border-radius: 0 16px 16px 0;
+        }
+
+        #drawer-left .drawer-handle {
+            width: 32px;
+            height: 64px;
+            border-left: none;
+            border-radius: 0 12px 12px 0;
+            margin-top: 16px;
+        }
+
+        /* Right Drawer */
+        #drawer-right {
+            top: 80px;
+            right: 0;
+            flex-direction: row-reverse;
+        }
+
+        #drawer-right .drawer-content {
+            border-right: none;
+            border-radius: 16px 0 0 16px;
+        }
+
+        #drawer-right .drawer-handle {
+            width: 32px;
+            height: 64px;
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+            margin-top: 16px;
+        }
+
+        /* Bottom Drawer */
+        #drawer-bottom {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #drawer-bottom .drawer-content {
+            width: 100%;
+            border-bottom: none;
+            padding-bottom: 24px;
+            align-items: center;
+        }
+
+        #drawer-bottom .drawer-handle {
+            width: 80px;
+            height: 32px;
+            border-bottom: none;
+            border-radius: 12px 12px 0 0;
+            margin-bottom: -1px;
+            /* Overlap border */
+            z-index: 51;
+        }
+
+        /* Components */
+        .btn-circle {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 1px solid var(--border-btn);
+            background: var(--surface-btn);
+            color: #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-circle:hover {
+            transform: scale(1.05);
+            background: var(--surface-btn-hover);
+            color: #fff;
+        }
+
+        .btn-circle:active {
+            transform: scale(0.95);
+        }
+
+        .btn-circle:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-primary,
+        .btn-success,
+        .btn-danger,
+        .btn-purple {
+            color: #ccc;
+            background-color: var(--surface-btn);
+            border-color: var(--border-btn);
+        }
+
+        .separator {
+            width: 100%;
+            height: 1px;
+            background: var(--border-color);
+            margin: 4px 0;
+        }
+
+        .label-sm {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            font-weight: 700;
+            text-align: center;
+            width: 100%;
+            border-bottom: 1px solid #333;
+            padding-bottom: 6px;
+            margin-bottom: 4px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Tools Bar */
+        .tools-container {
+            display: flex;
+            gap: 16px;
+            background: var(--overlay-tools);
+            padding: 8px 16px;
+            border-radius: 16px;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-btn);
+        }
+
+        .tool-btn {
+            background: transparent;
+            border: none;
+            color: #888;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tool-btn.active {
+            color: #f1f5f9;
+            background: #475569;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+
+
+        /* Colors */
+        .color-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 8px;
+            justify-content: center;
+        }
+
+        .color-swatch {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-swatch.active {
+            border-color: #fff;
+            transform: scale(1.15);
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            width: 150px;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #ccc;
+            margin-top: -8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: #555;
+            border-radius: 2px;
+        }
+
+        /* Comparison Slider */
+        #compare-slider {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 40px;
+            margin-left: -20px;
+            z-index: 40;
+            cursor: ew-resize;
+            display: flex;
+            justify-content: center;
+            touch-action: none;
+        }
+
+        #compare-line {
+            width: 2px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        #compare-handle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--surface-btn-hover);
+            border: 2px solid var(--border-handle);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+            cursor: move;
+            /* Indicates 2D movement */
+            touch-action: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* Icons */
+        svg {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .icon-sm svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        @media (max-width: 640px) {
+            #drawer-left {
+                top: 60px;
+            }
+
+            #drawer-right {
+                top: 60px;
+            }
+
+            .btn-circle {
+                width: 40px;
+                height: 40px;
+            }
+
+            .color-swatch {
+                width: 32px;
+                height: 32px;
+            }
+
+            input[type=range] {
+                width: 100px;
+            }
+        }
+
+        /* Splash Screen */
+        #splash-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-color);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 32px;
+            transition: opacity 0.5s ease;
+        }
+
+        .splash-content {
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .splash-title {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .splash-subtitle {
+            font-size: 20px;
+            color: var(--text-muted);
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .splash-attribution {
+            margin-top: 16px;
+            font-size: 16px;
+            color: #666;
+            font-style: italic;
+            border-top: 1px solid #333;
+            padding-top: 24px;
+            width: 100%;
+        }
+
+        .splash-attribution strong {
+            color: var(--text-main);
+            font-style: normal;
+            display: block;
+            margin-top: 4px;
+            font-size: 18px;
+        }
+
+        .btn-start {
+            margin-top: 32px;
+            padding: 16px 48px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #fff;
+            background: var(--surface-btn);
+            border: 1px solid var(--border-btn);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn-start:hover {
+            background: var(--surface-btn-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
 
 <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+
+    <div id="app-container">
+
+        <!-- Splash Screen -->
+        <div id="splash-screen">
+            <div class="splash-content">
+                <!-- App Icon -->
+                <svg viewBox="0 0 64 64"
+                    style="width:80px; height:80px; margin-bottom:24px; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4));">
+                    <defs>
+                        <linearGradient id="iconGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#2a2a2a;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <!-- Icon Background -->
+                    <rect x="0" y="0" width="64" height="64" rx="14" fill="url(#iconGradient)" stroke="#333"
+                        stroke-width="1" />
+
+                    <!-- The Object (Simple Star) -->
+                    <path d="M32 13 L38 26 L52 27 L41 36 L44 50 L32 43 L20 50 L23 36 L12 27 L26 26 Z" fill="#333"
+                        stroke="#e5e5e5" stroke-width="2" stroke-linejoin="round" />
+
+                    <!-- The Trace (Red Highlight) -->
+                    <path d="M32 13 L38 26 L52 27 L41 36 L44 50 L32 43" fill="none" stroke="#FF4444" stroke-width="3"
+                        stroke-linecap="round" stroke-linejoin="round" />
+
+                    <!-- Active Point Indicator -->
+                    <circle cx="32" cy="43" r="3" fill="#FF4444" stroke="#1a1a1a" stroke-width="1" />
+                </svg>
+
+                <h1 class="splash-title">Salient Feature Highlighter</h1>
+                <h2 class="splash-subtitle">With multi-panel support for<br>Comparative Language Discussions</h2>
+
+                <div class="splash-attribution">
+                    <p style="margin-bottom:12px;">App by <strong>Niall Brown</strong></p>
+                    <p style="font-size:14px; color:#888;">
+                        Concepts based on the work of<br>
+                        <strong>Dr. Christine Roman-Lantzy</strong>
+                    </p>
+                </div>
+
+                <button class="btn-start" onclick="app.dismissSplash()">Get Started</button>
+            </div>
+        </div>
+
+        <canvas id="main-canvas"></canvas>
+
+        <!-- Empty State Placeholders -->
+        <div id="empty-message-left" class="empty-state">
+            <svg viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <p style="margin-top:8px; font-weight:bold;">CHOOSE AN IMAGE</p>
+        </div>
+
+        <div id="empty-message-right" class="empty-state" style="display:none;">
+            <svg viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+            <p style="margin-top:8px; font-weight:bold;">LOAD COMPARISON</p>
+        </div>
+
+        <!-- Comparison Slider -->
+        <div id="compare-slider" style="display:none; left: 50%;">
+            <div id="compare-line"></div>
+            <div id="compare-handle">
+                <svg viewBox="0 0 24 24">
+                    <rect x="5" y="4" width="6" height="16" rx="1" />
+                    <rect x="13" y="4" width="6" height="16" rx="1" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- UI Layer -->
+        <div class="ui-layer">
+
+            <!-- Left Drawer -->
+            <div id="drawer-left" class="drawer">
+                <div class="drawer-content">
+                    <div class="label-sm">MY IMAGE</div>
+                    <button class="btn-circle btn-primary" onclick="app.triggerFile('left')" title="Load Image">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                    </button>
+                    <div class="separator"></div>
+                    <button class="btn-circle btn-success" onclick="app.save('left')" title="Save">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button class="btn-circle" id="btn-undo-left" onclick="app.undo('left')" disabled>
+                        <svg viewBox="0 0 24 24">
+                            <path d="M3 7v6h6"></path>
+                            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+                        </svg>
+                    </button>
+                    <button class="btn-circle" id="btn-redo-left" onclick="app.redo('left')" disabled>
+                        <svg viewBox="0 0 24 24">
+                            <path d="M21 7v6h-6"></path>
+                            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
+                        </svg>
+                    </button>
+                    <button class="btn-circle btn-danger" onclick="app.clear('left')">
+                        <svg viewBox="0 0 24 24">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                            </path>
+                        </svg>
+                    </button>
+                    <div class="separator"></div>
+                    <button class="btn-circle" id="btn-compare" onclick="app.toggleCompare()"
+                        style="color:var(--text-muted)">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="5" y="4" width="6" height="16" rx="1" />
+                            <rect x="13" y="4" width="6" height="16" rx="1" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="drawer-handle" onclick="app.toggleDrawer('left')">
+                    <svg viewBox="0 0 24 24" id="icon-handle-left">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Right Drawer (Compare) -->
+            <div id="drawer-right" class="drawer" style="display:none;">
+                <div class="drawer-content">
+                    <div class="label-sm">COMPARE</div>
+                    <button class="btn-circle" style="color:var(--text-muted); border-color:var(--border-btn)"
+                        onclick="app.triggerFile('right')">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                    </button>
+                    <div class="separator"></div>
+                    <button class="btn-circle btn-success" onclick="app.save('right')">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button class="btn-circle" id="btn-undo-right" onclick="app.undo('right')" disabled>
+                        <svg viewBox="0 0 24 24">
+                            <path d="M3 7v6h6"></path>
+                            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+                        </svg>
+                    </button>
+                    <button class="btn-circle" id="btn-redo-right" onclick="app.redo('right')" disabled>
+                        <svg viewBox="0 0 24 24">
+                            <path d="M21 7v6h-6"></path>
+                            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
+                        </svg>
+                    </button>
+                    <button class="btn-circle btn-danger" onclick="app.clear('right')">
+                        <svg viewBox="0 0 24 24">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="drawer-handle" onclick="app.toggleDrawer('right')">
+                    <svg viewBox="0 0 24 24" id="icon-handle-right">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Bottom Drawer -->
+            <div id="drawer-bottom" class="drawer">
+                <div class="drawer-handle" onclick="app.toggleDrawer('bottom')">
+                    <svg viewBox="0 0 24 24" id="icon-handle-bottom">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </div>
+                <div class="drawer-content">
+                    <!-- Colors -->
+                    <div class="color-row">
+                        <div class="color-swatch" style="background:var(--palette-red)"
+                            onclick="app.setColor('#FF4444')" data-color="#FF4444"></div>
+                        <div class="color-swatch" style="background:var(--palette-orange)"
+                            onclick="app.setColor('#FF8833')" data-color="#FF8833"></div>
+                        <div class="color-swatch" style="background:var(--palette-yellow)"
+                            onclick="app.setColor('#FFD700')" data-color="#FFD700"></div>
+                        <div class="color-swatch" style="background:var(--palette-green)"
+                            onclick="app.setColor('#44DD44')" data-color="#44DD44"></div>
+                        <div class="color-swatch" style="background:var(--palette-blue)"
+                            onclick="app.setColor('#4488FF')" data-color="#4488FF"></div>
+                        <div class="color-swatch" style="background:var(--palette-purple)"
+                            onclick="app.setColor('#BB66FF')" data-color="#BB66FF"></div>
+                        <div class="color-swatch" style="background:var(--palette-white)"
+                            onclick="app.setColor('#FFFFFF')" data-color="#FFFFFF"></div>
+                        <div class="color-swatch" style="background:var(--palette-black)"
+                            onclick="app.setColor('#000000')" data-color="#000000"></div>
+                    </div>
+
+                    <!-- Tools -->
+                    <div class="tools-container">
+                        <button class="tool-btn active" data-tool="pen" onclick="app.setTool('pen')" title="Pen">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+                                <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+                                <path d="M2 2l7.586 7.586"></path>
+                                <circle cx="11" cy="11" r="2"></circle>
+                            </svg>
+                        </button>
+                        <button class="tool-btn" data-tool="magnet" onclick="app.setTool('magnet')" title="Magnet">
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="M6 10a6 6 0 1 1 12 0v7a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-7a2 2 0 1 0-4 0v7a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-7z" />
+                                <path d="M6 13h4" />
+                                <path d="M14 13h4" />
+                            </svg>
+                        </button>
+                        <button class="tool-btn" data-tool="eraser" onclick="app.setTool('eraser')" title="Eraser">
+                            <svg viewBox="0 0 24 24">
+                                <path
+                                    d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21">
+                                </path>
+                                <path d="M22 21H7"></path>
+                                <path d="m5 11 9 9"></path>
+                            </svg>
+                        </button>
+                        <button class="tool-btn" data-tool="hand" onclick="app.setTool('hand')" title="Pan/Zoom">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path>
+                                <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path>
+                                <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path>
+                                <path
+                                    d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15">
+                                </path>
+                            </svg>
+                        </button>
+
+
+
+                        <div id="magnet-strength-container"
+                            style="display:none; align-items:center; gap:6px; margin-left:8px; padding-left:8px; border-left:1px solid var(--border-btn);">
+                            <span
+                                style="font-size:10px; font-weight:bold; color:var(--text-muted); letter-spacing:1px;">MAG</span>
+                            <input type="range" min="0" max="100" value="80" title="Magnet Strength"
+                                oninput="app.setMagnetStrength(this.value)" style="width:100px;">
+                        </div>
+
+                        <div style="width:1px; height:24px; background:var(--border-btn); margin:0 8px;"></div>
+
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span
+                                style="font-size:10px; font-weight:bold; color:var(--text-muted); letter-spacing:1px;">SIZE</span>
+                            <input type="range" min="2" max="60" value="12" oninput="app.setSize(this.value)"
+                                title="Brush Size" style="width:120px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden Inputs -->
+        <input type="file" id="file-input-left" accept="image/*" style="display:none">
+        <input type="file" id="file-input-right" accept="image/*" style="display:none">
+
+    </div>
+
+    <script>
+        const app = {
+            // --- State ---
+            canvas: null,
+            ctx: null,
+
+            // Images
+            imageLeft: null,
+            imageRight: null,
+
+            // Data structures
+            pathsLeft: [],
+            historyLeft: [],
+            redoStackLeft: [],
+
+            pathsRight: [],
+            historyRight: [],
+            redoStackRight: [],
+
+            // Transforms {x, y, k}
+            txLeft: { x: 0, y: 0, k: 1 },
+            txRight: { x: 0, y: 0, k: 1 },
+
+            // UI State
+            isComparing: false,
+            sliderPos: 0.5,
+            tool: 'pen',
+            color: '#FF4444',
+            size: 12,
+            magnetStrength: 0.8, // Default 80%
+            drawers: { left: true, right: true, bottom: true },
+
+            // Interaction
+            pointers: new Map(),
+            currentPath: null,
+            gesture: { dist: 0, center: null, last: null },
+            isDraggingSlider: false,
+            sliderPos: 0.5,
+            sliderHandleY: 0.5,
+
+            // Analysis
+            analysisCanvas: document.createElement('canvas'),
+            lastAnalysisImg: null,
+
+            init() {
+                this.canvas = document.getElementById('main-canvas');
+                this.ctx = this.canvas.getContext('2d');
+
+                // Listeners included passive:false for touch
+                window.addEventListener('resize', () => this.resize());
+
+                // Pointer Events
+                this.canvas.addEventListener('pointerdown', e => this.onPointerDown(e));
+                this.canvas.addEventListener('pointermove', e => this.onPointerMove(e));
+                this.canvas.addEventListener('pointerup', e => this.onPointerUp(e));
+                this.canvas.addEventListener('pointercancel', e => this.onPointerUp(e));
+                this.canvas.addEventListener('pointerleave', e => this.onPointerUp(e));
+                this.canvas.addEventListener('wheel', e => this.onWheel(e), { passive: false });
+
+                // Prevent default touch (scrolling)
+                document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+                // File Inputs
+                document.getElementById('file-input-left').onchange = e => this.loadFile(e, 'left');
+                document.getElementById('file-input-right').onchange = e => this.loadFile(e, 'right');
+
+                // Slider
+                const slider = document.getElementById('compare-slider');
+                slider.addEventListener('pointerdown', () => this.isDraggingSlider = true);
+                window.addEventListener('pointermove', e => {
+                    if (this.isDraggingSlider) {
+                        const rect = document.body.getBoundingClientRect();
+                        this.sliderPos = Math.max(0, Math.min(1, e.clientX / rect.width));
+                        this.sliderHandleY = Math.max(0, Math.min(1, e.clientY / rect.height));
+                        this.updateUI();
+                        this.draw();
+                    }
+                });
+                window.addEventListener('pointerup', () => this.isDraggingSlider = false);
+
+                this.resize();
+                this.updateUI();
+            },
+
+            resize() {
+                this.canvas.width = window.innerWidth * window.devicePixelRatio;
+                this.canvas.height = window.innerHeight * window.devicePixelRatio;
+                this.canvas.style.width = window.innerWidth + 'px';
+                this.canvas.style.height = window.innerHeight + 'px';
+
+                // If images loaded, possibly recenter if needed, but keeping transforms is usually better
+                this.draw();
+            },
+
+            // --- Drawing Pipeline ---
+            draw() {
+                const dpr = window.devicePixelRatio;
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                const cssW = window.innerWidth;
+                const cssH = window.innerHeight;
+
+                // Reset
+                this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                // Match --bg-color
+                this.ctx.fillStyle = '#111111';
+                this.ctx.fillRect(0, 0, w, h);
+
+                const cx = cssW / 2;
+                const cy = cssH / 2;
+
+                // Helper to draw a side
+                const drawSide = (side) => {
+                    const isRight = side === 'right';
+                    const img = isRight ? this.imageRight : this.imageLeft;
+                    const tx = isRight ? this.txRight : this.txLeft;
+                    const paths = isRight ? this.pathsRight : this.pathsLeft;
+                    const isActive = isRight ? (this.currentPath && this.getSideForX(this.currentPath.points[0].x) === 'right') : (this.currentPath && this.getSideForX(this.currentPath.points[0].x) === 'left');
+
+                    this.ctx.save();
+
+                    // Clip region for split screen
+                    this.ctx.beginPath();
+                    if (!this.isComparing) {
+                        this.ctx.rect(0, 0, w, h);
+                    } else {
+                        const splitX = this.sliderPos * w; // Canvas coords
+                        if (isRight) {
+                            this.ctx.rect(splitX, 0, w - splitX, h);
+                        } else {
+                            this.ctx.rect(0, 0, splitX, h);
+                        }
+                    }
+                    this.ctx.clip();
+
+                    // Transform
+                    this.ctx.translate(cx * dpr, cy * dpr);
+                    this.ctx.scale(tx.k * dpr, tx.k * dpr); // scale by DPR and Zoom
+                    this.ctx.translate(tx.x, tx.y);
+
+                    // Draw Image
+                    if (img) {
+                        this.ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                    }
+
+                    // Draw Paths
+                    this.ctx.lineCap = 'round';
+                    this.ctx.lineJoin = 'round';
+
+                    // Saved paths
+                    paths.forEach(p => this.renderPath(p));
+
+                    // Current path
+                    // Only draw current path if it started on this side? 
+                    // Actually in current app logic, 'currentPath' holds World Coordinates.
+                    // But World Coords depend on which transform we used.
+                    // Simplified: If dragging on left, we only draw on left tx.
+                    if (this.currentPath) {
+                        // Check if current path belongs to this side transform
+                        // We'll store "side" in currentPath to be safe
+                        if (this.currentPath.side === side) {
+                            this.renderPath(this.currentPath);
+                        }
+                    }
+
+                    this.ctx.restore();
+                };
+
+                if (this.isComparing) {
+                    drawSide('left');
+                    drawSide('right');
+                } else {
+                    drawSide('left');
+                }
+            },
+
+            renderPath(p) {
+                if (p.points.length < 1) return;
+
+                this.ctx.beginPath();
+                this.ctx.lineWidth = p.size;
+
+                if (p.isEraser) {
+                    this.ctx.globalCompositeOperation = 'destination-out';
+                    this.ctx.strokeStyle = '#000000'; // Color doesn't matter for destination-out
+                } else {
+                    this.ctx.globalCompositeOperation = 'source-over';
+                    this.ctx.strokeStyle = p.color;
+                }
+
+                const pts = p.points;
+                this.ctx.moveTo(pts[0].x, pts[0].y);
+
+                if (pts.length < 2) {
+                    this.ctx.lineTo(pts[0].x, pts[0].y);
+                } else {
+                    // Quadratic smoothing
+                    for (let i = 1; i < pts.length - 2; i++) {
+                        const mx = (pts[i].x + pts[i + 1].x) / 2;
+                        const my = (pts[i].y + pts[i + 1].y) / 2;
+                        this.ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+                    }
+                    // Last segment
+                    const i = pts.length - 2;
+                    this.ctx.quadraticCurveTo(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
+                }
+
+                this.ctx.stroke();
+                this.ctx.globalCompositeOperation = 'source-over';
+            },
+
+            // --- Interaction ---
+            getSideForX(clientX) {
+                if (!this.isComparing) return 'left';
+                return clientX > window.innerWidth * this.sliderPos ? 'right' : 'left';
+            },
+
+            toWorld(clientX, clientY, side) {
+                const tx = side === 'right' ? this.txRight : this.txLeft;
+                const cx = window.innerWidth / 2;
+                const cy = window.innerHeight / 2;
+                return {
+                    x: (clientX - cx) / tx.k - tx.x,
+                    y: (clientY - cy) / tx.k - tx.y
+                };
+            },
+
+            onPointerDown(e) {
+                // Handle Hand Tool or Multitouch separately
+                if (this.isDraggingSlider) return;
+
+                this.canvas.setPointerCapture(e.pointerId);
+                this.pointers.set(e.pointerId, e);
+
+                const side = this.getSideForX(e.clientX);
+                const pts = Array.from(this.pointers.values());
+
+                // Gesture Start (2 fingers)
+                if (pts.length === 2) {
+                    this.currentPath = null; // Cancel drawing
+                    this.gesture.dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+                    this.gesture.center = {
+                        x: (pts[0].clientX + pts[1].clientX) / 2,
+                        y: (pts[0].clientY + pts[1].clientY) / 2
+                    };
+                    return;
+                }
+
+
+                // Middle Mouse Button (Pan)
+                if (e.button === 1 || (e.button === 0 && this.tool === 'hand')) {
+                    this.gesture.last = { x: e.clientX, y: e.clientY };
+                    return;
+                }
+
+                // Single Pointer (Left Click)
+                if (pts.length === 1 && e.button === 0) {
+
+                    // Drawing Tools
+                    let wp = this.toWorld(e.clientX, e.clientY, side);
+
+                    // Magnet Logic
+                    if (this.tool === 'magnet') {
+                        const img = side === 'right' ? this.imageRight : this.imageLeft;
+                        if (img) {
+                            const snapped = this.snapToEdge(wp.x, wp.y, img);
+                            // Balanced Start: mix based on strength
+                            const strength = this.magnetStrength;
+                            wp.x = wp.x * (1 - strength) + snapped.x * strength;
+                            wp.y = wp.y * (1 - strength) + snapped.y * strength;
+                        }
+                    }
+
+                    this.currentPath = {
+                        points: [wp],
+                        color: this.color,
+                        size: this.size,
+                        isEraser: this.tool === 'eraser',
+                        side: side
+                    };
+                    this.draw();
+                }
+            },
+
+            onPointerMove(e) {
+                if (this.isDraggingSlider) return;
+                if (!this.pointers.has(e.pointerId)) return;
+                this.pointers.set(e.pointerId, e);
+
+                const pts = Array.from(this.pointers.values());
+
+                // Pinch Zoom / Pan (2 fingers)
+                if (pts.length === 2) {
+                    const newDist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+                    const newCenter = {
+                        x: (pts[0].clientX + pts[1].clientX) / 2,
+                        y: (pts[0].clientY + pts[1].clientY) / 2
+                    };
+
+                    const zoomFactor = newDist / this.gesture.dist;
+
+                    // Determine which side to transform based on center of gesture
+                    const side = this.getSideForX(newCenter.x);
+                    const tx = side === 'right' ? this.txRight : this.txLeft;
+
+                    // Apply Zoom
+                    const oldK = tx.k;
+                    tx.k = Math.max(0.1, Math.min(10, tx.k * zoomFactor));
+
+                    // Apply Pan (move based on center delta)
+                    const dx = newCenter.x - this.gesture.center.x;
+                    const dy = newCenter.y - this.gesture.center.y;
+
+                    tx.x += dx / tx.k;
+                    tx.y += dy / tx.k;
+
+                    this.gesture.dist = newDist;
+                    this.gesture.center = newCenter;
+                    this.draw();
+                    return;
+                }
+
+                // Single Finger
+                if (pts.length === 1) {
+                    const side = this.getSideForX(e.clientX);
+
+                    if (this.gesture.last) {
+                        const dx = e.clientX - this.gesture.last.x;
+                        const dy = e.clientY - this.gesture.last.y;
+                        // Pan current side
+                        const tx = side === 'right' ? this.txRight : this.txLeft;
+                        tx.x += dx / tx.k;
+                        tx.y += dy / tx.k;
+                        this.gesture.last = { x: e.clientX, y: e.clientY };
+                        this.draw();
+                        return;
+                    }
+
+                    // Drawing
+                    if (this.currentPath) {
+                        // Prevent drawing across split
+                        if (side !== this.currentPath.side) return;
+
+                        let wp = this.toWorld(e.clientX, e.clientY, side);
+                        const rawWp = { ...wp };
+
+                        // Magnet Logic (Balanced)
+                        if (this.tool === 'magnet') {
+                            const img = side === 'right' ? this.imageRight : this.imageLeft;
+                            if (img) {
+                                const previousPoints = this.currentPath.points;
+                                const snapped = this.snapToEdge(wp.x, wp.y, img);
+
+                                // 1. Dynamic Snap Strength
+                                const strength = this.magnetStrength;
+                                wp.x = wp.x * (1 - strength) + snapped.x * strength;
+                                wp.y = wp.y * (1 - strength) + snapped.y * strength;
+
+                                // 2. Momentum Smoothing (60% current, 40% last)
+                                if (previousPoints.length >= 1) {
+                                    const last = previousPoints[previousPoints.length - 1];
+                                    wp.x = wp.x * 0.6 + last.x * 0.4;
+                                    wp.y = wp.y * 0.6 + last.y * 0.4;
+                                }
+
+                                // 3. Extra Stability (85% current, 15% second-last)
+                                if (previousPoints.length >= 2) {
+                                    const sec = previousPoints[previousPoints.length - 2];
+                                    wp.x = wp.x * 0.85 + sec.x * 0.15;
+                                    wp.y = wp.y * 0.85 + sec.y * 0.15;
+                                }
+
+                                // 4. Relaxed Max Drift Clamp (20px) - matches search radius
+                                const dx = wp.x - rawWp.x;
+                                const dy = wp.y - rawWp.y;
+                                const d = Math.hypot(dx, dy);
+                                const maxDrift = 20;
+                                if (d > maxDrift) {
+                                    const s = maxDrift / d;
+                                    wp.x = rawWp.x + dx * s;
+                                    wp.y = rawWp.y + dy * s;
+                                }
+                            }
+                        }
+
+                        // Append point if far enough
+                        const lastPt = this.currentPath.points[this.currentPath.points.length - 1];
+                        const d = Math.hypot(wp.x - lastPt.x, wp.y - lastPt.y);
+                        if (d > (this.tool === 'magnet' ? 2 : 0.5)) {
+                            this.currentPath.points.push(wp);
+                            this.draw();
+                        }
+                    }
+                }
+            },
+
+            onPointerUp(e) {
+                this.pointers.delete(e.pointerId);
+
+                if (this.currentPath) {
+                    const side = this.currentPath.side;
+                    if (side === 'left') {
+                        this.historyLeft.push([...this.pathsLeft]);
+                        this.redoStackLeft = [];
+                        this.pathsLeft.push(this.currentPath);
+                    } else {
+                        this.historyRight.push([...this.pathsRight]);
+                        this.redoStackRight = [];
+                        this.pathsRight.push(this.currentPath);
+                    }
+                    this.currentPath = null;
+                    this.updateUI(); // For undo/redo buttons
+                }
+
+                this.gesture.last = null;
+            },
+
+            onWheel(e) {
+                e.preventDefault();
+                const side = this.getSideForX(e.clientX);
+                const tx = side === 'right' ? this.txRight : this.txLeft;
+
+                const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+
+                // Zoom around mouse pointer
+                // 1. World before zoom
+                const wBefore = this.toWorld(e.clientX, e.clientY, side);
+
+                // 2. Apply zoom
+                tx.k = Math.max(0.1, Math.min(10, tx.k * zoomFactor));
+
+                // 3. World after zoom (would be different if we didn't move)
+                // We want the world point under mouse to stay same.
+                // New screen pos = (World + tx) * k + center
+                // We want to adjust tx so that point matches.
+                // Easier logic: adjusting tx.x/y.
+
+                // Effective pan adjustment:
+                // We are scaling around the center of the viewport in our transform logic (cx, cy).
+                // But we want to scale around mouse.
+                // The offset from center is (e.clientX - cx, e.clientY - cy).
+
+                // Let's use the simple approach:
+                // Move world point to keep it under cursor.
+                // Current logic: Screen -> World = (Screen - Center)/k - tx
+                // So Screen = (World + tx) * k + Center
+
+                // We want Screen to be same for wBefore.
+                // (wBefore + newTx) * newK + Center = e.client
+                // wBefore + newTx = (e.client - Center) / newK
+                // newTx = (e.client - Center) / newK - wBefore
+
+                const cx = window.innerWidth / 2;
+                const cy = window.innerHeight / 2;
+
+                tx.x = (e.clientX - cx) / tx.k - wBefore.x;
+                tx.y = (e.clientY - cy) / tx.k - wBefore.y;
+
+                this.draw();
+            },
+
+            // --- Magnet Algorithm ---
+            snapToEdge(wx, wy, img) {
+                if (!img) return { x: wx, y: wy };
+
+                // Convert world to image coords
+                const w = img.width;
+                const h = img.height;
+                // Image is centered at 0,0 in world space
+                const ix = Math.round(wx + w / 2);
+                const iy = Math.round(wy + h / 2);
+
+                // Parameters (Balanced)
+                const radius = 20; // Increased radius
+                const maxSnap = 20;
+
+                // Bounds check
+                if (ix < -radius || ix > w + radius || iy < -radius || iy > h + radius) return { x: wx, y: wy };
+
+                // Prepare Analysis Canvas
+                if (this.lastAnalysisImg !== img) {
+                    this.analysisCanvas.width = w;
+                    this.analysisCanvas.height = h;
+                    const ctx = this.analysisCanvas.getContext('2d', { willReadFrequently: true });
+                    ctx.drawImage(img, 0, 0);
+                    this.lastAnalysisImg = img;
+                }
+
+                const ctx = this.analysisCanvas.getContext('2d');
+                const sx = Math.max(0, ix - radius);
+                const sy = Math.max(0, iy - radius);
+                const ex = Math.min(w, ix + radius);
+                const ey = Math.min(h, iy + radius);
+
+                const sw = ex - sx;
+                const sh = ey - sy;
+                if (sw <= 0 || sh <= 0) return { x: wx, y: wy };
+
+                const imgData = ctx.getImageData(sx, sy, sw, sh);
+                const data = imgData.data;
+
+                let maxScore = -1;
+                let bestX = ix;
+                let bestY = iy;
+
+                // Sobel-like edge detection in region
+                const getLum = (x, y) => {
+                    // Clamp to buffer bounds to avoid fake edges
+                    const cx = Math.max(0, Math.min(sw - 1, x));
+                    const cy = Math.max(0, Math.min(sh - 1, y));
+                    const idx = (cy * sw + cx) * 4;
+                    // RGB -> Luma
+                    return 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+                };
+
+                // Scan region
+                for (let y = 0; y < sh; y++) {
+                    for (let x = 0; x < sw; x++) {
+                        // Gradients
+                        const gx = getLum(x + 1, y) - getLum(x - 1, y);
+                        const gy = getLum(x, y + 1) - getLum(x, y - 1);
+                        const mag = Math.sqrt(gx * gx + gy * gy);
+
+                        if (mag < 10) continue; // Threshold
+
+                        // Distance penalty
+                        const realX = sx + x;
+                        const realY = sy + y;
+                        const dx = realX - ix;
+                        const dy = realY - iy;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+
+                        const score = mag - (dist * 1.0); // Prefer closer strong edges, reduced penalty
+
+                        if (score > maxScore) {
+                            maxScore = score;
+                            bestX = realX;
+                            bestY = realY;
+                        }
+                    }
+                }
+
+                if (maxScore > 0) {
+                    // Bounds check for snap distance
+                    const targetWx = bestX - w / 2;
+                    const targetWy = bestY - h / 2;
+                    const snapDist = Math.hypot(targetWx - wx, targetWy - wy);
+
+                    if (snapDist <= maxSnap) {
+                        return { x: targetWx, y: targetWy };
+                    } else {
+                        // Clamp
+                        const factor = maxSnap / snapDist;
+                        return {
+                            x: wx + (targetWx - wx) * factor,
+                            y: wy + (targetWy - wy) * factor
+                        };
+                    }
+                }
+
+                return { x: wx, y: wy };
+            },
+
+            // --- Actions ---
+            loadFile(e, side) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        if (side === 'left') {
+                            this.imageLeft = img;
+                            // Fit Left
+                            this.fitImage('left');
+                        } else {
+                            this.imageRight = img;
+                            this.fitImage('right');
+                        }
+                        this.updateUI();
+                        this.draw();
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+                e.target.value = null; // reset
+            },
+
+            triggerFile(side) {
+                document.getElementById(side === 'left' ? 'file-input-left' : 'file-input-right').click();
+            },
+
+            fitImage(side) {
+                const img = side === 'right' ? this.imageRight : this.imageLeft;
+                if (!img) return;
+
+                // viewport size
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+
+                const scale = Math.min(vw / img.width, vh / img.height) * 0.9;
+                const tx = { x: 0, y: 0, k: scale };
+
+                if (side === 'left') this.txLeft = tx;
+                else this.txRight = tx;
+            },
+
+            toggleCompare() {
+                this.isComparing = !this.isComparing;
+
+                if (this.isComparing && !this.imageRight) {
+                    // Maybe duplicate left image? No, wait for user load.
+                }
+
+                this.updateUI();
+                this.draw();
+            },
+
+            toggleDrawer(id) {
+                this.drawers[id] = !this.drawers[id];
+                const el = document.getElementById('drawer-' + id);
+                const handleIcon = document.getElementById('icon-handle-' + id);
+
+                if (id === 'left') {
+                    el.style.transform = this.drawers[id] ? 'translateX(0)' : 'translateX(calc(-100% + 32px))';
+                    handleIcon.innerHTML = this.drawers[id] ? '<polyline points="15 18 9 12 15 6"></polyline>' : '<polyline points="9 18 15 12 9 6"></polyline>';
+                } else if (id === 'right') {
+                    el.style.transform = this.drawers[id] ? 'translateX(0)' : 'translateX(calc(100% - 32px))';
+                    handleIcon.innerHTML = this.drawers[id] ? '<polyline points="9 18 15 12 9 6"></polyline>' : '<polyline points="15 18 9 12 15 6"></polyline>';
+                } else if (id === 'bottom') {
+                    el.style.transform = this.drawers[id] ? 'translateY(0)' : 'translateY(calc(100% - 32px))';
+                    handleIcon.innerHTML = this.drawers[id] ? '<polyline points="6 9 12 15 18 9"></polyline>' : '<polyline points="18 15 12 9 6 15"></polyline>';
+                }
+            },
+
+            setTool(t) {
+                this.tool = t;
+                this.updateUI();
+            },
+
+            setMagnetStrength(v) {
+                this.magnetStrength = parseInt(v) / 100;
+            },
+
+            setColor(c) {
+                this.color = c;
+                if (this.tool === 'eraser') this.tool = 'pen';
+                this.updateUI();
+            },
+
+            setSize(s) {
+                this.size = parseInt(s);
+            },
+
+            undo(side) {
+                if (side === 'left') {
+                    if (this.historyLeft.length === 0) return;
+                    this.redoStackLeft.push([...this.pathsLeft]);
+                    this.pathsLeft = this.historyLeft.pop();
+                } else {
+                    if (this.historyRight.length === 0) return;
+                    this.redoStackRight.push([...this.pathsRight]);
+                    this.pathsRight = this.historyRight.pop();
+                }
+                this.draw();
+                this.updateUI();
+            },
+
+            redo(side) {
+                if (side === 'left') {
+                    if (this.redoStackLeft.length === 0) return;
+                    this.historyLeft.push([...this.pathsLeft]);
+                    this.pathsLeft = this.redoStackLeft.pop();
+                } else {
+                    if (this.redoStackRight.length === 0) return;
+                    this.historyRight.push([...this.pathsRight]);
+                    this.pathsRight = this.redoStackRight.pop();
+                }
+                this.draw();
+                this.updateUI();
+            },
+
+            clear(side) {
+                if (side === 'left') {
+                    this.historyLeft.push([...this.pathsLeft]);
+                    this.pathsLeft = [];
+                    this.redoStackLeft = [];
+                } else {
+                    this.historyRight.push([...this.pathsRight]);
+                    this.pathsRight = [];
+                    this.redoStackRight = [];
+                }
+                this.draw();
+                this.updateUI();
+            },
+
+            save(side) {
+                const img = side === 'right' ? this.imageRight : this.imageLeft;
+                const paths = side === 'right' ? this.pathsRight : this.pathsLeft;
+                const width = img ? img.width : 1920;
+                const height = img ? img.height : 1080;
+
+                const c = document.createElement('canvas');
+                c.width = width;
+                c.height = height;
+                const ctx = c.getContext('2d');
+
+                // Background
+                ctx.fillStyle = '#111111';
+                ctx.fillRect(0, 0, width, height);
+                if (img) ctx.drawImage(img, 0, 0);
+
+                // Paths
+                ctx.translate(width / 2, height / 2);
+                // Note: Saved paths are in world coords relative to image center (0,0)
+                // So we just draw them centered.
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+
+
+                // Re-implement Save logic correctly
+                const inkCanvas = document.createElement('canvas');
+                inkCanvas.width = width;
+                inkCanvas.height = height;
+                const inkCtx = inkCanvas.getContext('2d');
+                inkCtx.translate(width / 2, height / 2);
+                inkCtx.lineCap = 'round'; inkCtx.lineJoin = 'round';
+
+                paths.forEach(p => {
+                    if (p.points.length < 1) return;
+                    inkCtx.beginPath();
+                    inkCtx.lineWidth = p.size;
+                    if (p.isEraser) {
+                        inkCtx.globalCompositeOperation = 'destination-out';
+                        inkCtx.strokeStyle = '#000000';
+                    } else {
+                        inkCtx.globalCompositeOperation = 'source-over';
+                        inkCtx.strokeStyle = p.color;
+                    }
+
+                    const pts = p.points;
+                    inkCtx.moveTo(pts[0].x, pts[0].y);
+                    if (pts.length < 2) inkCtx.lineTo(pts[0].x, pts[0].y);
+                    else {
+                        for (let i = 1; i < pts.length - 2; i++) {
+                            inkCtx.quadraticCurveTo(pts[i].x, pts[i].y, (pts[i].x + pts[i + 1].x) / 2, (pts[i].y + pts[i + 1].y) / 2);
+                        }
+                        const i = pts.length - 2;
+                        inkCtx.quadraticCurveTo(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
+                    }
+                    inkCtx.stroke();
+                });
+
+                // Final Composite
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+                ctx.drawImage(inkCanvas, 0, 0);
+
+                // Download
+                const a = document.createElement('a');
+                a.download = `sfh-${side}-${Date.now()}.png`;
+                a.href = c.toDataURL();
+                a.click();
+            },
+
+            updateUI() {
+                // Empty States
+                const leftEmpty = !this.imageLeft && this.pathsLeft.length === 0;
+                document.getElementById('empty-message-left').style.display = leftEmpty ? 'flex' : 'none';
+
+                if (this.isComparing) {
+                    const rightEmpty = !this.imageRight; // Only show message if no image
+                    // Position message
+                    const rightMsg = document.getElementById('empty-message-right');
+                    rightMsg.style.display = rightEmpty ? 'flex' : 'none';
+                    rightMsg.style.left = (this.sliderPos * 100) + '%';
+                    rightMsg.style.width = ((1 - this.sliderPos) * 100) + '%';
+
+                    document.getElementById('drawer-right').style.display = 'flex';
+                    document.getElementById('compare-slider').style.display = 'flex';
+                    document.getElementById('compare-slider').style.left = (this.sliderPos * 100) + '%';
+                    document.getElementById('compare-handle').style.top = (this.sliderHandleY * 100) + '%';
+
+                    // Adjust left empty message width
+                    document.getElementById('empty-message-left').style.width = (this.sliderPos * 100) + '%';
+                } else {
+                    document.getElementById('empty-message-right').style.display = 'none';
+                    document.getElementById('drawer-right').style.display = 'none';
+                    document.getElementById('compare-slider').style.display = 'none';
+                    document.getElementById('empty-message-left').style.width = '100%';
+                }
+
+                // Buttons
+                document.getElementById('btn-undo-left').disabled = this.historyLeft.length === 0;
+                document.getElementById('btn-redo-left').disabled = this.redoStackLeft.length === 0;
+                document.getElementById('btn-undo-right').disabled = this.historyRight.length === 0;
+                document.getElementById('btn-redo-right').disabled = this.redoStackRight.length === 0;
+
+                // Tool active states
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.tool === this.tool);
+                });
+
+                // Color active states
+                document.querySelectorAll('.color-swatch').forEach(sw => {
+                    sw.classList.toggle('active', sw.dataset.color === this.color && this.tool !== 'eraser');
+                });
+
+                // Compare button active style
+                const btnCompare = document.getElementById('btn-compare');
+
+                if (this.isComparing) {
+                    // Active: Slate highlighting
+                    btnCompare.style.background = '#475569';
+                    btnCompare.style.color = '#f1f5f9';
+                    btnCompare.style.borderColor = '#475569';
+                } else {
+                    // Inactive: Subtle/Default
+                    btnCompare.style.background = ''; // Use class default
+                    btnCompare.style.color = 'var(--text-muted)';
+                    btnCompare.style.borderColor = ''; // Use class default
+                }
+
+                // Magnet styling
+                const isMagnet = this.tool === 'magnet';
+                document.getElementById('magnet-strength-container').style.display = isMagnet ? 'flex' : 'none';
+            },
+
+            dismissSplash() {
+                const el = document.getElementById('splash-screen');
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    el.style.display = 'none';
+                }, 500);
+            }
+        };
+
+        window.onload = () => app.init();
+    </script>
+
 </body>
 
 </html>
