@@ -1610,11 +1610,13 @@
                                 wp.x = wp.x * (1 - strength) + snapped.x * strength;
                                 wp.y = wp.y * (1 - strength) + snapped.y * strength;
 
-                                // 2. Momentum Smoothing (60% current, 40% last)
+                                // 2. Momentum Smoothing (Dynamic)
+                                // Higher strength = less smoothing (more snap fidelity)
+                                const momentum = 0.5 + (this.magnetStrength * 0.35); // 0.5 to 0.85
                                 if (previousPoints.length >= 1) {
                                     const last = previousPoints[previousPoints.length - 1];
-                                    wp.x = wp.x * 0.6 + last.x * 0.4;
-                                    wp.y = wp.y * 0.6 + last.y * 0.4;
+                                    wp.x = wp.x * momentum + last.x * (1 - momentum);
+                                    wp.y = wp.y * momentum + last.y * (1 - momentum);
                                 }
 
                                 // 3. Extra Stability (85% current, 15% second-last)
@@ -1724,9 +1726,9 @@
                 const ix = Math.round(wx + w / 2);
                 const iy = Math.round(wy + h / 2);
 
-                // Parameters (Balanced)
-                const radius = 40; // Increased radius for better finding
-                const maxSnap = 40;
+                // Parameters (Stronger)
+                const radius = 60; // Increased reach
+                const maxSnap = 60;
 
                 // Bounds check
                 if (ix < -radius || ix > w + radius || iy < -radius || iy > h + radius) return { x: wx, y: wy };
@@ -1784,7 +1786,7 @@
                         const dy = realY - iy;
                         const dist = Math.sqrt(dx * dx + dy * dy);
 
-                        const score = mag - (dist * 0.5); // Prefer closer strong edges, reduced penalty
+                        const score = mag - (dist * 0.25); // Lower penalty to favor strong edges further away
 
                         if (score > maxScore) {
                             maxScore = score;
