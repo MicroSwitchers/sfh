@@ -17,16 +17,49 @@
     <link rel="apple-touch-icon" href="icon.svg">
 
     <script>
+        let waitingWorker;
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
+
+                        // Check for updates periodically
+                        registration.onupdatefound = () => {
+                            const installingWorker = registration.installing;
+                            installingWorker.onstatechange = () => {
+                                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    showUpdatePrompt(registration.waiting);
+                                }
+                            };
+                        };
+
+                        // Handle manual check (in case it's already waiting)
+                        if (registration.waiting) {
+                            showUpdatePrompt(registration.waiting);
+                        }
                     })
                     .catch(err => {
                         console.log('ServiceWorker registration failed: ', err);
                     });
             });
+
+            // Reload when new worker takes over
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
+            });
+        }
+
+        function showUpdatePrompt(worker) {
+            waitingWorker = worker;
+            const prompt = document.getElementById('update-prompt');
+            prompt.classList.add('visible');
+        }
+
+        function updateApp() {
+            if (waitingWorker) {
+                waitingWorker.postMessage({ action: 'skipWaiting' });
+            }
         }
     </script>
     <style>
@@ -452,6 +485,43 @@
             touch-action: none;
         }
 
+        /* Update Prompt */
+        #update-prompt {
+            position: fixed;
+            bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+            left: 50%;
+            transform: translateX(-50%) translateY(150%);
+            background: #2563eb;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 50px;
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: auto;
+            white-space: nowrap;
+        }
+
+        #update-prompt.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .btn-update {
+            background: #fff;
+            color: #2563eb;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         /* Empty State */
         .empty-state {
             position: absolute;
@@ -462,6 +532,13 @@
             justify-content: center;
             opacity: 0.3;
             pointer-events: none;
+            overflow: hidden;
+            padding: 0 20px;
+            text-align: center;
+        }
+
+        .empty-state p {
+            white-space: nowrap;
         }
 
         /* Icons */
@@ -800,6 +877,12 @@
 <body>
 
     <div id="app-container">
+
+        <!-- Update Prompt -->
+        <div id="update-prompt">
+            <span style="font-weight:500; font-size:14px;">Update Available!</span>
+            <button class="btn-update" onclick="updateApp()">Update Now</button>
+        </div>
 
         <!-- Splash Screen -->
         <div id="splash-screen">
