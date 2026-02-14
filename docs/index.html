@@ -198,8 +198,9 @@
             flex-direction: row;
         }
 
-        #drawer-left.closed {
-            transform: translateX(calc(-100% + 0px));
+        /* Slider wrapper for mobile - hidden on desktop */
+        #slider-controls {
+            display: none;
         }
 
         /* Actually we want to hide the content but keep handle visible? 
@@ -583,7 +584,23 @@
 
         @media (max-width: 640px) {
 
-            /* Side drawers */
+            /* Hide desktop slider controls within tools container */
+            .tools-container>div>input[type=range],
+            .tools-container>div>span,
+            .tools-container>div[id="magnet-strength-container"] {
+                display: none !important;
+            }
+
+            /* Also hide the vertical separator */
+            .tools-container>div[style*="width:1px"] {
+                display: none;
+            }
+
+            /* Show mobile slider controls */
+            #slider-controls {
+                display: flex;
+            }
+
             #drawer-left {
                 top: 12px;
             }
@@ -654,28 +671,72 @@
                 height: 6px;
             }
 
-            /* Bottom drawer */
+            /* Bottom drawer — stack layout on mobile */
             #drawer-bottom .drawer-content {
                 padding: 8px 8px calc(12px + env(safe-area-inset-bottom, 0px));
                 gap: 8px;
+                flex-direction: column;
             }
 
+            /* Put tools in a single row, scrollable */
             .tools-container {
                 gap: 6px;
                 padding: 4px 8px;
                 justify-content: flex-start;
+                width: 100%;
+                order: 1;
             }
 
-            .tools-container input[type=range] {
-                width: 80px;
+            /* Color row stays on top */
+            .color-row {
+                order: 0;
             }
 
-            /* Magnet slider specific for mobile */
-            /* Magnet slider specific for mobile */
-            .mag-slider {
-                width: 60px !important;
-                flex-shrink: 1;
-                /* allow shrinking if needed */
+            /* Sliders container — new wrapper for SIZE and MAG */
+            #slider-controls {
+                display: flex;
+                gap: 12px;
+                width: 100%;
+                justify-content: center;
+                align-items: center;
+                order: 2;
+                flex-wrap: wrap;
+            }
+
+            #slider-controls>div {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            #slider-controls input[type=range] {
+                width: 120px;
+            }
+
+            #slider-controls span {
+                font-size: 10px;
+                font-weight: bold;
+                color: var(--text-muted);
+                letter-spacing: 1px;
+                display: inline !important;
+            }
+
+            /* Hide separator and magnet container on mobile since we'll restructure */
+            .tools-container>div[style*="width:1px"] {
+                display: none;
+            }
+
+            #magnet-strength-container {
+                display: none !important;
+            }
+
+            /* Hide tool labels on mobile */
+            .tools-container>div:not(#magnet-strength-container)>span {
+                display: none;
+            }
+
+            .tools-container>div>input[type=range] {
+                display: none;
             }
 
             /* Splash screen */
@@ -709,10 +770,6 @@
                 font-size: 9px;
                 padding-bottom: 4px;
                 margin-bottom: 2px;
-            }
-
-            .tools-container span {
-                display: none;
             }
         }
 
@@ -1167,6 +1224,20 @@
                                 style="font-size:10px; font-weight:bold; color:var(--text-muted); letter-spacing:1px;">SIZE</span>
                             <input type="range" min="2" max="60" value="24" oninput="app.setSize(this.value)"
                                 title="Brush Size" style="width:120px;">
+                        </div>
+                    </div>
+
+                    <!-- Slider Controls (visible on mobile below color palette) -->
+                    <div id="slider-controls">
+                        <div>
+                            <span>SIZE</span>
+                            <input type="range" min="2" max="60" value="24" oninput="app.setSize(this.value)"
+                                title="Brush Size" id="size-slider-mobile">
+                        </div>
+                        <div id="magnet-slider-mobile" style="display:none;">
+                            <span>MAG</span>
+                            <input type="range" min="0" max="100" value="80" title="Magnet Strength"
+                                oninput="app.setMagnetStrength(this.value)">
                         </div>
                     </div>
                 </div>
@@ -2024,6 +2095,12 @@
                 // Magnet styling
                 const isMagnet = this.tool === 'magnet';
                 document.getElementById('magnet-strength-container').style.display = isMagnet ? 'flex' : 'none';
+
+                // Mobile magnet slider
+                const mobileSlider = document.getElementById('magnet-slider-mobile');
+                if (mobileSlider) {
+                    mobileSlider.style.display = isMagnet ? 'flex' : 'none';
+                }
             },
 
             isMobile() {
