@@ -1513,14 +1513,14 @@
                     // Drawing Tools
                     let wp = this.toWorld(e.clientX, e.clientY, side);
 
-                    // Magnet Logic
+                    // Magnet Logic - snap first point to nearest edge
                     if (this.tool === 'magnet') {
                         const img = side === 'right' ? this.imageRight : this.imageLeft;
                         if (img) {
-                            // On first point, we don't have a direction yet.
-                            // We can try to snap to nearest edge using a simple localized search
-                            // or just start at the finger. Starting at finger is safer/less jumpy.
-                            // Let's just use the raw point for the initial touch.
+                            const snapped = this.snapToNearestEdge(wp.x, wp.y, img);
+                            const strength = this.magnetStrength;
+                            wp.x = wp.x * (1 - strength) + snapped.x * strength;
+                            wp.y = wp.y * (1 - strength) + snapped.y * strength;
                         }
                     }
 
@@ -1595,41 +1595,24 @@
                         if (side !== this.currentPath.side) return;
 
                         let wp = this.toWorld(e.clientX, e.clientY, side);
-                        const rawWp = { ...wp };
 
-                        // Magnet Logic (Balanced)
+                        // Magnet Logic - simple edge snapping
                         if (this.tool === 'magnet') {
                             const img = side === 'right' ? this.imageRight : this.imageLeft;
                             if (img) {
-                                let lastPt = this.currentPath.points[this.currentPath.points.length - 1];
+                                const snapped = this.snapToNearestEdge(wp.x, wp.y, img);
+                                const strength = this.magnetStrength;
 
-                                // Interpolate if distance is large to catch curves
-                                const dist = Math.hypot(wp.x - lastPt.x, wp.y - lastPt.y);
-                                const steps = Math.ceil(dist / 5); // every 5px
+                                // Blend based on strength
+                                wp.x = wp.x * (1 - strength) + snapped.x * strength;
+                                wp.y = wp.y * (1 - strength) + snapped.y * strength;
 
-                                for (let i = 1; i <= steps; i++) {
-                                    const t = i / steps;
-                                    const ix = lastPt.x + (wp.x - lastPt.x) * t;
-                                    const iy = lastPt.y + (wp.y - lastPt.y) * t;
-
-                                    // Direction for normal search
-                                    const dx = wp.x - lastPt.x;
-                                    const dy = wp.y - lastPt.y;
-
-                                    // Scan and snap
-                                    const snapped = this.getSnapPoint(ix, iy, dx, dy, img);
-
-                                    // Smoothly blend
-                                    const strength = this.magnetStrength; // 0-1
-                                    const finalX = ix * (1 - strength) + snapped.x * strength;
-                                    const finalY = iy * (1 - strength) + snapped.y * strength;
-
-                                    this.currentPath.points.push({ x: finalX, y: finalY });
+                                // Smooth with previous point to reduce jitter
+                                const lastPt = this.currentPath.points[this.currentPath.points.length - 1];
+                                if (lastPt) {
+                                    wp.x = wp.x * 0.7 + lastPt.x * 0.3;
+                                    wp.y = wp.y * 0.7 + lastPt.y * 0.3;
                                 }
-
-                                // We handled pushing points manually, so skip the default push
-                                this.draw();
-                                return;
                             }
                         }
 
@@ -1710,22 +1693,21 @@
             },
 
             // --- Magnet Algorithm ---
-            // --- New Scanline Magnet ---
-            getSnapPoint(wx, wy, dx, dy, img) {
-                // Direction vector length
-                const len = Math.hypot(dx, dy);
-                if (len < 0.001) return { x: wx, y: wy };
-
-                // Normal Vector (perpendicular)
-                const nx = -dy / len;
-                const ny = dx / len;
+            snapToNearestEdge(wx, wy, img) {
+                if (!img) return { x: wx, y: wy };
 
                 const w = img.width;
                 const h = img.height;
+                // Convert world coords to image coords
                 const ix = Math.round(wx + w / 2);
                 const iy = Math.round(wy + h / 2);
 
-                const range = 40; // Search range in pixels along normal
+                const searchRadius = 25; // Search radius in pixels
+
+                // Bounds check
+                if (ix < -searchRadius || ix > w + searchRadius || iy < -searchRadius || iy > h + searchRadius) {
+                    return { x: wx, y: wy };
+                }
 
                 // Prepare Analysis Canvas (cached)
                 if (this.lastAnalysisImg !== img) {
@@ -1736,74 +1718,63 @@
                     this.lastAnalysisImg = img;
                 }
 
-                // Optimization: Get a strip along the normal? 
-                // Getting full image data is slow. Getting small patches is fast.
-                // We need points: (ix, iy) + t * (nx, ny)
-                // Bounding box for the strip:
-                const safeRange = range + 2;
-                // Get endpoints of the scan line
-                const p1x = ix + nx * -safeRange;
-                const p1y = iy + ny * -safeRange;
-                const p2x = ix + nx * safeRange;
-                const p2y = iy + ny * safeRange;
-
-                // Determine precise bounding box of the line + padding for gradient kernel
-                let sx = Math.floor(Math.min(p1x, p2x)) - 2;
-                let sy = Math.floor(Math.min(p1y, p2y)) - 2;
-                let ex = Math.ceil(Math.max(p1x, p2x)) + 2;
-                let ey = Math.ceil(Math.max(p1y, p2y)) + 2;
-
-                // Clamp to image bounds
-                sx = Math.max(0, sx);
-                sy = Math.max(0, sy);
-                ex = Math.min(w, ex);
-                ey = Math.min(h, ey);
-
-                const boxW = ex - sx;
-                const boxH = ey - sy;
-
-                if (boxW <= 0 || boxH <= 0) return { x: wx, y: wy };
-
                 const ctx = this.analysisCanvas.getContext('2d');
 
-                const imgData = ctx.getImageData(sx, sy, boxW, boxH);
+                // Define search region
+                const sx = Math.max(0, ix - searchRadius);
+                const sy = Math.max(0, iy - searchRadius);
+                const ex = Math.min(w, ix + searchRadius);
+                const ey = Math.min(h, iy + searchRadius);
+
+                const sw = ex - sx;
+                const sh = ey - sy;
+                if (sw <= 0 || sh <= 0) return { x: wx, y: wy };
+
+                const imgData = ctx.getImageData(sx, sy, sw, sh);
                 const data = imgData.data;
 
-                const getLumLocal = (lx, ly) => {
-                    if (lx < 0 || lx >= boxW || ly < 0 || ly >= boxH) return 0;
-                    const idx = (ly * boxW + lx) * 4;
+                // Helper to get luminance
+                const getLum = (x, y) => {
+                    if (x < 0 || x >= sw || y < 0 || y >= sh) return 0;
+                    const idx = (y * sw + x) * 4;
                     return 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
                 };
 
-                // Search along the normal
-                let bestScore = -1;
-                let bestOffset = 0;
+                // Find pixel with strongest edge in search area
+                let maxGradient = -1;
+                let bestX = ix;
+                let bestY = iy;
 
-                for (let t = -range; t <= range; t++) {
-                    // Sample point in box coords
-                    const px = Math.round((ix + nx * t) - sx);
-                    const py = Math.round((iy + ny * t) - sy);
+                for (let y = 1; y < sh - 1; y++) {
+                    for (let x = 1; x < sw - 1; x++) {
+                        // Sobel operator for edge detection
+                        const gx = getLum(x + 1, y) - getLum(x - 1, y);
+                        const gy = getLum(x, y + 1) - getLum(x, y - 1);
+                        const magnitude = Math.sqrt(gx * gx + gy * gy);
 
-                    // Gradient check (simple central difference)
-                    const gx = getLumLocal(px + 1, py) - getLumLocal(px - 1, py);
-                    const gy = getLumLocal(px, py + 1) - getLumLocal(px, py - 1);
-                    const mag = Math.sqrt(gx * gx + gy * gy);
+                        if (magnitude < 8) continue; // Skip weak edges
 
-                    // Score: Magnitude penalized by distance from center line
-                    // dist = Math.abs(t)
-                    // Penalty: Closer is better.
-                    const score = mag - (Math.abs(t) * 1.5); // Tune this penalty
+                        // Calculate real distance from center
+                        const realX = sx + x;
+                        const realY = sy + y;
+                        const dist = Math.hypot(realX - ix, realY - iy);
 
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestOffset = t;
+                        // Score: prioritize strong edges that are close
+                        const score = magnitude - (dist * 0.8);
+
+                        if (score > maxGradient) {
+                            maxGradient = score;
+                            bestX = realX;
+                            bestY = realY;
+                        }
                     }
                 }
 
-                if (bestScore > 5) { // Threshold
+                // Only snap if we found a decent edge
+                if (maxGradient > 3) {
                     return {
-                        x: (ix + nx * bestOffset) - w / 2,
-                        y: (iy + ny * bestOffset) - h / 2
+                        x: bestX - w / 2,
+                        y: bestY - h / 2
                     };
                 }
 
