@@ -1742,10 +1742,23 @@
                 // We need points: (ix, iy) + t * (nx, ny)
                 // Bounding box for the strip:
                 const safeRange = range + 2;
-                const sx = Math.floor(Math.min(ix + nx * -safeRange, ix + nx * safeRange));
-                const sy = Math.floor(Math.min(iy + ny * -safeRange, iy + ny * safeRange));
-                const ex = Math.ceil(Math.max(ix + nx * -safeRange, ix + nx * safeRange));
-                const ey = Math.ceil(Math.max(iy + ny * -safeRange, iy + ny * safeRange));
+                // Get endpoints of the scan line
+                const p1x = ix + nx * -safeRange;
+                const p1y = iy + ny * -safeRange;
+                const p2x = ix + nx * safeRange;
+                const p2y = iy + ny * safeRange;
+
+                // Determine precise bounding box of the line + padding for gradient kernel
+                let sx = Math.floor(Math.min(p1x, p2x)) - 2;
+                let sy = Math.floor(Math.min(p1y, p2y)) - 2;
+                let ex = Math.ceil(Math.max(p1x, p2x)) + 2;
+                let ey = Math.ceil(Math.max(p1y, p2y)) + 2;
+
+                // Clamp to image bounds
+                sx = Math.max(0, sx);
+                sy = Math.max(0, sy);
+                ex = Math.min(w, ex);
+                ey = Math.min(h, ey);
 
                 const boxW = ex - sx;
                 const boxH = ey - sy;
@@ -1753,8 +1766,6 @@
                 if (boxW <= 0 || boxH <= 0) return { x: wx, y: wy };
 
                 const ctx = this.analysisCanvas.getContext('2d');
-                // Check bounds against image
-                if (sx < 0 || sy < 0 || ex > w || ey > h) return { x: wx, y: wy };
 
                 const imgData = ctx.getImageData(sx, sy, boxW, boxH);
                 const data = imgData.data;
