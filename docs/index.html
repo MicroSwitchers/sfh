@@ -125,10 +125,10 @@
             backdrop-filter: blur(12px);
             border: 1px solid var(--border-color);
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-            padding: 12px;
+            padding: 8px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 8px;
             pointer-events: auto;
         }
 
@@ -154,7 +154,7 @@
         /* Left Drawer */
         #drawer-left {
             top: 80px;
-            left: 0;
+            left: env(safe-area-inset-left, 0px);
             flex-direction: row;
         }
 
@@ -185,7 +185,7 @@
         /* Right Drawer */
         #drawer-right {
             top: 80px;
-            right: 0;
+            right: env(safe-area-inset-right, 0px);
             flex-direction: row-reverse;
         }
 
@@ -214,7 +214,7 @@
         #drawer-bottom .drawer-content {
             width: 100%;
             border-bottom: none;
-            padding-bottom: 24px;
+            padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
             align-items: center;
         }
 
@@ -284,8 +284,8 @@
             text-align: center;
             width: 100%;
             border-bottom: 1px solid #333;
-            padding-bottom: 6px;
-            margin-bottom: 4px;
+            padding-bottom: 4px;
+            margin-bottom: 2px;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
 
@@ -472,27 +472,219 @@
             height: 18px;
         }
 
+        /* Touch feedback for all interactive elements */
+        .tool-btn:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .color-swatch:active {
+            transform: scale(0.9);
+        }
+
+        .drawer-handle:active {
+            background: var(--surface-btn-hover);
+            transform: scale(0.95);
+        }
+
         @media (max-width: 640px) {
+
+            /* Side drawers */
             #drawer-left {
-                top: 60px;
+                top: 12px;
             }
 
             #drawer-right {
-                top: 60px;
+                top: 12px;
+            }
+
+            .drawer-content {
+                padding: 6px;
+                gap: 6px;
+            }
+
+            /* Bigger touch targets for drawer handles */
+            #drawer-left .drawer-handle {
+                width: 40px;
+                height: 72px;
+            }
+
+            #drawer-right .drawer-handle {
+                width: 40px;
+                height: 72px;
+            }
+
+            #drawer-bottom .drawer-handle {
+                width: 96px;
+                height: 36px;
+            }
+
+            /* Buttons */
+            .btn-circle {
+                width: 42px;
+                height: 42px;
+            }
+
+            /* Tool buttons — ensure 44px touch target */
+            .tool-btn {
+                padding: 10px;
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            /* Color swatches */
+            .color-swatch {
+                width: 34px;
+                height: 34px;
+            }
+
+            .color-row {
+                gap: 10px;
+                padding: 4px 12px;
+                justify-content: center;
+            }
+
+            /* Range sliders — bigger thumb */
+            input[type=range] {
+                width: 90px;
+                height: 28px;
+            }
+
+            input[type=range]::-webkit-slider-thumb {
+                height: 28px;
+                width: 28px;
+                margin-top: -11px;
+            }
+
+            input[type=range]::-webkit-slider-runnable-track {
+                height: 6px;
+            }
+
+            /* Bottom drawer */
+            #drawer-bottom .drawer-content {
+                padding: 8px 8px calc(12px + env(safe-area-inset-bottom, 0px));
+                gap: 8px;
+            }
+
+            .tools-container {
+                gap: 8px;
+                padding: 6px 10px;
+            }
+
+            /* Splash screen */
+            .splash-title {
+                font-size: 24px;
+            }
+
+            .splash-subtitle {
+                font-size: 16px;
+            }
+
+            .splash-attribution {
+                font-size: 14px;
+            }
+
+            .splash-attribution strong {
+                font-size: 16px;
+            }
+
+            .btn-start {
+                padding: 14px 36px;
+                font-size: 16px;
+            }
+
+            .splash-content {
+                gap: 16px;
+            }
+
+            /* Labels */
+            .label-sm {
+                font-size: 9px;
+                padding-bottom: 4px;
+                margin-bottom: 2px;
+            }
+        }
+
+        /* Landscape phones — very short screens */
+        @media (max-height: 480px) {
+            #drawer-left {
+                top: 4px;
+            }
+
+            #drawer-right {
+                top: 4px;
+            }
+
+            .drawer-content {
+                padding: 6px;
+                gap: 4px;
+                flex-direction: row;
+                flex-wrap: wrap;
+                max-width: none;
+            }
+
+            #drawer-left .drawer-content,
+            #drawer-right .drawer-content {
+                flex-direction: column;
+                max-height: calc(100vh - 48px);
+                overflow-y: auto;
             }
 
             .btn-circle {
-                width: 40px;
-                height: 40px;
+                width: 36px;
+                height: 36px;
+            }
+
+            .label-sm {
+                display: none;
+            }
+
+            .separator {
+                margin: 1px 0;
+            }
+
+            /* Compact bottom drawer */
+            #drawer-bottom .drawer-content {
+                padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px));
+                gap: 4px;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                align-items: center;
+            }
+
+            .color-row {
+                gap: 6px;
+                margin-bottom: 0;
+                padding: 2px 8px;
             }
 
             .color-swatch {
-                width: 32px;
-                height: 32px;
+                width: 26px;
+                height: 26px;
             }
 
-            input[type=range] {
-                width: 100px;
+            .tools-container {
+                gap: 4px;
+                padding: 4px 8px;
+            }
+
+            .tool-btn {
+                padding: 6px;
+            }
+
+            /* Splash adjustments */
+            .splash-title {
+                font-size: 20px;
+            }
+
+            .splash-subtitle {
+                font-size: 14px;
+            }
+
+            .btn-start {
+                margin-top: 16px;
+                padding: 10px 28px;
+                font-size: 14px;
             }
         }
 
@@ -1128,6 +1320,11 @@
                 // Single Pointer (Left Click)
                 if (pts.length === 1 && e.button === 0) {
 
+                    // Auto-collapse drawers on mobile to free canvas space
+                    if (this.tool !== 'hand') {
+                        this.collapseDrawersForDrawing();
+                    }
+
                     // Drawing Tools
                     let wp = this.toWorld(e.clientX, e.clientY, side);
 
@@ -1492,15 +1689,19 @@
                 this.drawers[id] = !this.drawers[id];
                 const el = document.getElementById('drawer-' + id);
                 const handleIcon = document.getElementById('icon-handle-' + id);
+                const handle = el.querySelector('.drawer-handle');
 
                 if (id === 'left') {
-                    el.style.transform = this.drawers[id] ? 'translateX(0)' : 'translateX(calc(-100% + 32px))';
+                    const hw = handle.offsetWidth;
+                    el.style.transform = this.drawers[id] ? 'translateX(0)' : `translateX(calc(-100% + ${hw}px))`;
                     handleIcon.innerHTML = this.drawers[id] ? '<polyline points="15 18 9 12 15 6"></polyline>' : '<polyline points="9 18 15 12 9 6"></polyline>';
                 } else if (id === 'right') {
-                    el.style.transform = this.drawers[id] ? 'translateX(0)' : 'translateX(calc(100% - 32px))';
+                    const hw = handle.offsetWidth;
+                    el.style.transform = this.drawers[id] ? 'translateX(0)' : `translateX(calc(100% - ${hw}px))`;
                     handleIcon.innerHTML = this.drawers[id] ? '<polyline points="9 18 15 12 9 6"></polyline>' : '<polyline points="15 18 9 12 15 6"></polyline>';
                 } else if (id === 'bottom') {
-                    el.style.transform = this.drawers[id] ? 'translateY(0)' : 'translateY(calc(100% - 32px))';
+                    const hh = handle.offsetHeight;
+                    el.style.transform = this.drawers[id] ? 'translateY(0)' : `translateY(calc(100% - ${hh}px))`;
                     handleIcon.innerHTML = this.drawers[id] ? '<polyline points="6 9 12 15 18 9"></polyline>' : '<polyline points="18 15 12 9 6 15"></polyline>';
                 }
             },
@@ -1697,6 +1898,20 @@
                 // Magnet styling
                 const isMagnet = this.tool === 'magnet';
                 document.getElementById('magnet-strength-container').style.display = isMagnet ? 'flex' : 'none';
+            },
+
+            isMobile() {
+                return window.innerWidth < 640;
+            },
+
+            collapseDrawersForDrawing() {
+                if (!this.isMobile()) return;
+                if (this.drawers.left) {
+                    this.toggleDrawer('left');
+                }
+                if (this.isComparing && this.drawers.right) {
+                    this.toggleDrawer('right');
+                }
             },
 
             dismissSplash() {
