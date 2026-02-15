@@ -1192,7 +1192,8 @@
                                 <circle cx="11" cy="11" r="2"></circle>
                             </svg>
                         </button>
-                        <button class="tool-btn" data-tool="magnet" onclick="app.setTool('magnet')" title="Magnet">
+                        <button class="tool-btn" data-tool="magnet" onclick="app.setTool('magnet')"
+                            title="Smooth Tracer">
                             <svg viewBox="0 0 24 24">
                                 <path
                                     d="M6 10a6 6 0 1 1 12 0v7a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-7a2 2 0 1 0-4 0v7a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-7z" />
@@ -1233,7 +1234,8 @@
                         </div>
                         <div id="magnet-slider-container" class="slider-group" style="display:none;">
                             <span>MAG</span>
-                            <input type="range" min="0" max="100" value="80" title="Magnet Strength"
+                            <input type="range" min="0" max="100" value="70"
+                                title="Magnet strength (0=no edge snapping, 100=strong edge attraction)"
                                 oninput="app.setMagnetStrength(this.value)">
                         </div>
                     </div>
@@ -1276,7 +1278,7 @@
             tool: 'pen',
             color: '#FF4444',
             size: 24,
-            magnetStrength: 0.8, // Default 80%
+            magnetStrength: 0.7, // Default 70% smoothness
             drawers: { left: true, right: true, bottom: true },
 
             // Interaction
@@ -1287,9 +1289,9 @@
             sliderPos: 0.5,
             sliderHandleY: 0.5,
 
-            // Analysis
-            analysisCanvas: document.createElement('canvas'),
-            lastAnalysisImg: null,
+            // Pre-computed edge maps (computed once on image load)
+            edgeMapLeft: null,
+            edgeMapRight: null,
 
             init() {
                 this.canvas = document.getElementById('main-canvas');
@@ -1513,16 +1515,7 @@
                     // Drawing Tools
                     let wp = this.toWorld(e.clientX, e.clientY, side);
 
-                    // Magnet Logic - snap first point to nearest edge
-                    if (this.tool === 'magnet') {
-                        const img = side === 'right' ? this.imageRight : this.imageLeft;
-                        if (img) {
-                            const snapped = this.snapToNearestEdge(wp.x, wp.y, img);
-                            const strength = this.magnetStrength;
-                            wp.x = wp.x * (1 - strength) + snapped.x * strength;
-                            wp.y = wp.y * (1 - strength) + snapped.y * strength;
-                        }
-                    }
+                    // Magnet tool is now a smoothing tool - no special logic needed on first point
 
                     this.currentPath = {
                         points: [wp],
@@ -1596,22 +1589,34 @@
 
                         let wp = this.toWorld(e.clientX, e.clientY, side);
 
-                        // Magnet Logic - simple edge snapping
+                        // Magnet tool: Snap toward pre-computed edges + smooth
                         if (this.tool === 'magnet') {
-                            const img = side === 'right' ? this.imageRight : this.imageLeft;
-                            if (img) {
-                                const snapped = this.snapToNearestEdge(wp.x, wp.y, img);
-                                const strength = this.magnetStrength;
+                            const strength = this.magnetStrength; // 0-1
+                            const points = this.currentPath.points;
+                            const edgeMap = side === 'right' ? this.edgeMapRight : this.edgeMapLeft;
 
-                                // Blend based on strength
-                                wp.x = wp.x * (1 - strength) + snapped.x * strength;
-                                wp.y = wp.y * (1 - strength) + snapped.y * strength;
+                            if (points.length >= 1 && strength > 0) {
+                                // 1. Pull toward nearest strong edge in pre-computed edge map
+                                if (edgeMap) {
+                                    const attraction = this.findEdgeAttraction(wp.x, wp.y, edgeMap, strength);
+                                    if (attraction) {
+                                        const pull = strength * attraction.strength;
+                                        wp.x = wp.x * (1 - pull) + attraction.x * pull;
+                                        wp.y = wp.y * (1 - pull) + attraction.y * pull;
+                                    }
+                                }
 
-                                // Smooth with previous point to reduce jitter
-                                const lastPt = this.currentPath.points[this.currentPath.points.length - 1];
-                                if (lastPt) {
-                                    wp.x = wp.x * 0.7 + lastPt.x * 0.3;
-                                    wp.y = wp.y * 0.7 + lastPt.y * 0.3;
+                                // 2. Smooth with previous points for clean lines
+                                const last = points[points.length - 1];
+                                const blend = strength * 0.4;
+                                wp.x = wp.x * (1 - blend) + last.x * blend;
+                                wp.y = wp.y * (1 - blend) + last.y * blend;
+
+                                if (points.length >= 2 && strength > 0.5) {
+                                    const prev = points[points.length - 2];
+                                    const secBlend = (strength - 0.5) * 0.2;
+                                    wp.x = wp.x * (1 - secBlend) + prev.x * secBlend;
+                                    wp.y = wp.y * (1 - secBlend) + prev.y * secBlend;
                                 }
                             }
                         }
@@ -1619,7 +1624,7 @@
                         // Append point if far enough
                         const lastPt = this.currentPath.points[this.currentPath.points.length - 1];
                         const d = Math.hypot(wp.x - lastPt.x, wp.y - lastPt.y);
-                        if (d > (this.tool === 'magnet' ? 2 : 0.5)) {
+                        if (d > (this.tool === 'magnet' ? 1 : 0.5)) {
                             this.currentPath.points.push(wp);
                             this.draw();
                         }
@@ -1691,94 +1696,151 @@
 
                 this.draw();
             },
+            // --- Pre-computed Edge Detection for Magnet Tool ---
+            computeEdgeMap(img) {
+                // Downscale large images for fast edge detection, but keep high enough for quality
+                const maxDim = 2048; // Increased from 1024 for better precision
+                const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+                const w = Math.round(img.width * scale);
+                const h = Math.round(img.height * scale);
 
-            // --- Magnet Algorithm ---
-            snapToNearestEdge(wx, wy, img) {
-                if (!img) return { x: wx, y: wy };
+                const c = document.createElement('canvas');
+                c.width = w;
+                c.height = h;
+                const ctx = c.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const imageData = ctx.getImageData(0, 0, w, h);
+                const px = imageData.data;
 
-                const w = img.width;
-                const h = img.height;
-                // Convert world coords to image coords
-                const ix = Math.round(wx + w / 2);
-                const iy = Math.round(wy + h / 2);
-
-                const searchRadius = 25; // Search radius in pixels
-
-                // Bounds check
-                if (ix < -searchRadius || ix > w + searchRadius || iy < -searchRadius || iy > h + searchRadius) {
-                    return { x: wx, y: wy };
+                // Convert to grayscale (luminance)
+                const gray = new Float32Array(w * h);
+                for (let i = 0; i < w * h; i++) {
+                    const j = i * 4;
+                    gray[i] = 0.299 * px[j] + 0.587 * px[j + 1] + 0.114 * px[j + 2];
                 }
 
-                // Prepare Analysis Canvas (cached)
-                if (this.lastAnalysisImg !== img) {
-                    this.analysisCanvas.width = w;
-                    this.analysisCanvas.height = h;
-                    const ctx = this.analysisCanvas.getContext('2d', { willReadFrequently: true });
-                    ctx.drawImage(img, 0, 0);
-                    this.lastAnalysisImg = img;
+                // 3x3 Gaussian blur to reduce noise
+                const blurred = new Float32Array(w * h);
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        blurred[y * w + x] = (
+                            gray[(y - 1) * w + (x - 1)] + 2 * gray[(y - 1) * w + x] + gray[(y - 1) * w + (x + 1)] +
+                            2 * gray[y * w + (x - 1)] + 4 * gray[y * w + x] + 2 * gray[y * w + (x + 1)] +
+                            gray[(y + 1) * w + (x - 1)] + 2 * gray[(y + 1) * w + x] + gray[(y + 1) * w + (x + 1)]
+                        ) / 16;
+                    }
                 }
 
-                const ctx = this.analysisCanvas.getContext('2d');
+                // Sobel edge detection
+                const edges = new Float32Array(w * h);
+                let maxVal = 0;
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        const tl = blurred[(y - 1) * w + (x - 1)], tc = blurred[(y - 1) * w + x], tr = blurred[(y - 1) * w + (x + 1)];
+                        const ml = blurred[y * w + (x - 1)], mr = blurred[y * w + (x + 1)];
+                        const bl = blurred[(y + 1) * w + (x - 1)], bc = blurred[(y + 1) * w + x], br = blurred[(y + 1) * w + (x + 1)];
 
-                // Define search region
-                const sx = Math.max(0, ix - searchRadius);
-                const sy = Math.max(0, iy - searchRadius);
-                const ex = Math.min(w, ix + searchRadius);
-                const ey = Math.min(h, iy + searchRadius);
+                        const gx = -tl + tr - 2 * ml + 2 * mr - bl + br;
+                        const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
+                        const mag = Math.sqrt(gx * gx + gy * gy);
+                        edges[y * w + x] = mag;
+                        if (mag > maxVal) maxVal = mag;
+                    }
+                }
 
-                const sw = ex - sx;
-                const sh = ey - sy;
-                if (sw <= 0 || sh <= 0) return { x: wx, y: wy };
+                // Normalize to 0-1
+                if (maxVal > 0) {
+                    const inv = 1 / maxVal;
+                    for (let i = 0; i < edges.length; i++) edges[i] *= inv;
+                }
 
-                const imgData = ctx.getImageData(sx, sy, sw, sh);
-                const data = imgData.data;
+                return { data: edges, width: w, height: h, scale, origW: img.width, origH: img.height };
+            },
 
-                // Helper to get luminance
-                const getLum = (x, y) => {
-                    if (x < 0 || x >= sw || y < 0 || y >= sh) return 0;
-                    const idx = (y * sw + x) * 4;
-                    return 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
-                };
+            findEdgeAttraction(wx, wy, edgeMap, magnetStrength) {
+                const s = edgeMap.scale;
+                const w = edgeMap.width;
+                const h = edgeMap.height;
 
-                // Find pixel with strongest edge in search area
-                let maxGradient = -1;
+                // Convert world coords to edge map coords
+                const ix = Math.round((wx + edgeMap.origW / 2) * s);
+                const iy = Math.round((wy + edgeMap.origH / 2) * s);
+
+                // Search radius scales with magnet strength (12-28 original image pixels)
+                const rawRadius = 12 + magnetStrength * 16;
+                const radius = Math.max(3, Math.round(rawRadius * s));
+                const radiusSq = radius * radius;
+
+                // Clamp search bounds
+                const minX = Math.max(1, ix - radius);
+                const maxX = Math.min(w - 2, ix + radius);
+                const minY = Math.max(1, iy - radius);
+                const maxY = Math.min(h - 2, iy + radius);
+
+                if (minX >= maxX || minY >= maxY) return null;
+
+                let bestScore = 0;
                 let bestX = ix;
                 let bestY = iy;
 
-                for (let y = 1; y < sh - 1; y++) {
-                    for (let x = 1; x < sw - 1; x++) {
-                        // Sobel operator for edge detection
-                        const gx = getLum(x + 1, y) - getLum(x - 1, y);
-                        const gy = getLum(x, y + 1) - getLum(x, y - 1);
-                        const magnitude = Math.sqrt(gx * gx + gy * gy);
+                for (let py = minY; py <= maxY; py++) {
+                    for (let px = minX; px <= maxX; px++) {
+                        const dx = px - ix;
+                        const dy = py - iy;
+                        const distSq = dx * dx + dy * dy;
+                        if (distSq > radiusSq) continue;
 
-                        if (magnitude < 8) continue; // Skip weak edges
+                        const edgeStr = edgeMap.data[py * w + px];
+                        if (edgeStr < 0.1) continue; // Skip weak edges
 
-                        // Calculate real distance from center
-                        const realX = sx + x;
-                        const realY = sy + y;
-                        const dist = Math.hypot(realX - ix, realY - iy);
+                        const dist = Math.sqrt(distSq);
+                        const proximity = 1 - dist / radius;
+                        // Quadratic distance falloff: strongly prefer close edges
+                        const score = edgeStr * proximity * proximity;
 
-                        // Score: prioritize strong edges that are close
-                        const score = magnitude - (dist * 0.8);
-
-                        if (score > maxGradient) {
-                            maxGradient = score;
-                            bestX = realX;
-                            bestY = realY;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestX = px;
+                            bestY = py;
                         }
                     }
                 }
 
-                // Only snap if we found a decent edge
-                if (maxGradient > 3) {
+                if (bestScore > 0.03) {
+                    // Refine position with sub-pixel centroid (3x3 area around peak)
+                    let sumW = 0;
+                    let sumX = 0;
+                    let sumY = 0;
+
+                    // Limit 3x3 bounds
+                    const cMinX = Math.max(0, bestX - 1);
+                    const cMaxX = Math.min(w - 1, bestX + 1);
+                    const cMinY = Math.max(0, bestY - 1);
+                    const cMaxY = Math.min(h - 1, bestY + 1);
+
+                    for (let cy = cMinY; cy <= cMaxY; cy++) {
+                        for (let cx = cMinX; cx <= cMaxX; cx++) {
+                            const val = edgeMap.data[cy * w + cx];
+                            // Use squared value to emphasize the peak
+                            const wgt = val * val;
+                            sumW += wgt;
+                            sumX += cx * wgt;
+                            sumY += cy * wgt;
+                        }
+                    }
+
+                    const finalX = sumW > 0 ? sumX / sumW : bestX;
+                    const finalY = sumW > 0 ? sumY / sumW : bestY;
+
                     return {
-                        x: bestX - w / 2,
-                        y: bestY - h / 2
+                        x: finalX / s - edgeMap.origW / 2,
+                        y: finalY / s - edgeMap.origH / 2,
+                        // Allow stronger pull on strong edges (up to 1.0)
+                        strength: Math.min(bestScore * 2.0, 1.0)
                     };
                 }
 
-                return { x: wx, y: wy };
+                return null;
             },
 
             // --- Actions ---
@@ -1791,10 +1853,11 @@
                     img.onload = () => {
                         if (side === 'left') {
                             this.imageLeft = img;
-                            // Fit Left
+                            this.edgeMapLeft = this.computeEdgeMap(img);
                             this.fitImage('left');
                         } else {
                             this.imageRight = img;
+                            this.edgeMapRight = this.computeEdgeMap(img);
                             this.fitImage('right');
                         }
                         this.updateUI();
