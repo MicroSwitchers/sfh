@@ -1589,32 +1589,38 @@
 
                         let wp = this.toWorld(e.clientX, e.clientY, side);
 
-                        // Magnet tool: Snap toward pre-computed edges + smooth
+                        // Magnet tool: Smooth input first, then snap toward edges
                         if (this.tool === 'magnet') {
                             const strength = this.magnetStrength; // 0-1
                             const points = this.currentPath.points;
                             const edgeMap = side === 'right' ? this.edgeMapRight : this.edgeMapLeft;
 
                             if (points.length >= 1 && strength > 0) {
-                                // 1. Pull toward nearest strong edge in pre-computed edge map
+                                const last = points[points.length - 1];
+
+                                // 1. Stabilize raw input with light smoothing
+                                const inputBlend = strength * 0.3;
+                                wp.x = wp.x * (1 - inputBlend) + last.x * inputBlend;
+                                wp.y = wp.y * (1 - inputBlend) + last.y * inputBlend;
+
+                                // 2. Snap toward nearest edge
                                 if (edgeMap) {
                                     const attraction = this.findEdgeAttraction(wp.x, wp.y, edgeMap, strength);
                                     if (attraction) {
-                                        const pull = strength * attraction.strength;
+                                        const pull = Math.min(strength * attraction.strength * 2, 0.95);
                                         wp.x = wp.x * (1 - pull) + attraction.x * pull;
                                         wp.y = wp.y * (1 - pull) + attraction.y * pull;
                                     }
                                 }
 
-                                // 2. Smooth with previous points for clean lines
-                                const last = points[points.length - 1];
-                                const blend = strength * 0.4;
-                                wp.x = wp.x * (1 - blend) + last.x * blend;
-                                wp.y = wp.y * (1 - blend) + last.y * blend;
+                                // 3. Smooth the result to prevent weaving/jitter
+                                const outBlend = strength * 0.5;
+                                wp.x = wp.x * (1 - outBlend) + last.x * outBlend;
+                                wp.y = wp.y * (1 - outBlend) + last.y * outBlend;
 
-                                if (points.length >= 2 && strength > 0.5) {
+                                if (points.length >= 2 && strength > 0.4) {
                                     const prev = points[points.length - 2];
-                                    const secBlend = (strength - 0.5) * 0.2;
+                                    const secBlend = (strength - 0.4) * 0.25;
                                     wp.x = wp.x * (1 - secBlend) + prev.x * secBlend;
                                     wp.y = wp.y * (1 - secBlend) + prev.y * secBlend;
                                 }
@@ -1766,9 +1772,9 @@
                 const ix = Math.round((wx + edgeMap.origW / 2) * s);
                 const iy = Math.round((wy + edgeMap.origH / 2) * s);
 
-                // Search radius scales with magnet strength (12-28 original image pixels)
-                const rawRadius = 12 + magnetStrength * 16;
-                const radius = Math.max(3, Math.round(rawRadius * s));
+                // Search radius scales with magnet strength (20-50 original image pixels)
+                const rawRadius = 20 + magnetStrength * 30;
+                const radius = Math.max(5, Math.round(rawRadius * s));
                 const radiusSq = radius * radius;
 
                 // Clamp search bounds
@@ -1791,7 +1797,7 @@
                         if (distSq > radiusSq) continue;
 
                         const edgeStr = edgeMap.data[py * w + px];
-                        if (edgeStr < 0.1) continue; // Skip weak edges
+                        if (edgeStr < 0.03) continue; // Skip very weak edges
 
                         const dist = Math.sqrt(distSq);
                         const proximity = 1 - dist / radius;
@@ -1806,7 +1812,7 @@
                     }
                 }
 
-                if (bestScore > 0.03) {
+                if (bestScore > 0.01) {
                     // Refine position with sub-pixel centroid (3x3 area around peak)
                     let sumW = 0;
                     let sumX = 0;
