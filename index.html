@@ -387,7 +387,7 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            border: none;
+            border: 2px solid rgba(128, 128, 128, 0.35);
             cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
             flex-shrink: 0;
@@ -1132,6 +1132,12 @@
                             <rect x="13" y="4" width="6" height="16" rx="1" />
                         </svg>
                     </button>
+                    <button class="btn-circle" id="btn-fullscreen" onclick="app.toggleFullscreen()"
+                        title="Toggle Fullscreen (F)" style="color:var(--text-muted)">
+                        <svg viewBox="0 0 24 24" id="icon-fullscreen">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                        </svg>
+                    </button>
                 </div>
                 <div class="drawer-handle" onclick="app.toggleDrawer('left')">
                     <svg viewBox="0 0 24 24" id="icon-handle-left">
@@ -1375,6 +1381,19 @@
 
                 // Keyboard shortcuts
                 window.addEventListener('keydown', e => this.onKeyDown(e));
+
+                // Fullscreen change detection
+                document.addEventListener('fullscreenchange', () => {
+                    const btn = document.getElementById('btn-fullscreen');
+                    const icon = document.getElementById('icon-fullscreen');
+                    if (document.fullscreenElement) {
+                        btn.style.color = 'var(--accent-blue)';
+                        icon.innerHTML = '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>';
+                    } else {
+                        btn.style.color = 'var(--text-muted)';
+                        icon.innerHTML = '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>';
+                    }
+                });
 
                 // File Inputs
                 document.getElementById('file-input-left').onchange = e => this.loadFile(e, 'left');
@@ -2008,6 +2027,16 @@
                 this.draw();
             },
 
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log('Error attempting to enable fullscreen:', err);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            },
+
             toggleDrawer(id) {
                 this.drawers[id] = !this.drawers[id];
                 const el = document.getElementById('drawer-' + id);
@@ -2258,6 +2287,7 @@
                         case 'e': this.setTool('eraser'); break;
                         case 'h': this.setTool('hand'); break;
                         case 'c': this.toggleCompare(); break;
+                        case 'f': this.toggleFullscreen(); break;
                     }
                 }
                 if ((e.ctrlKey || e.metaKey) && key === 'z') {
