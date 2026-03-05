@@ -6,7 +6,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="description" content="Trace and highlight features on images for comparative language discussions.">
-    <meta name="theme-color" content="#111111">
+    <meta name="theme-color" content="#0a0a0e">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Salient Feature Highlighter</title>
@@ -26,6 +26,11 @@
 
                         // Force a check on load
                         registration.update();
+
+                        // Check for updates every hour
+                        setInterval(() => {
+                            registration.update();
+                        }, 60 * 60 * 1000);
 
                         // Check for updates periodically
                         registration.onupdatefound = () => {
@@ -71,24 +76,25 @@
     </script>
     <style>
         :root {
-            --bg-color: #111111;
-            --panel-bg: rgba(23, 23, 23, 0.95);
-            --border-color: #404040;
-            --text-main: #e5e7eb;
-            --text-muted: #9ca3af;
+            --bg-color: #0a0a0e;
+            --panel-bg: rgba(16, 16, 26, 0.97);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-main: #f0f0f4;
+            --text-muted: #8888a0;
 
             /* UI Elements */
-            --surface-btn: #262626;
-            --surface-btn-hover: #333333;
-            --border-btn: #525252;
-            --border-handle: #666666;
-            --overlay-tools: rgba(40, 40, 40, 0.5);
+            --surface-btn: #1a1a2a;
+            --surface-btn-hover: #252540;
+            --border-btn: rgba(255, 255, 255, 0.11);
+            --border-handle: rgba(255, 255, 255, 0.28);
+            --overlay-tools: rgba(8, 8, 16, 0.78);
 
             /* Accents */
-            --accent-blue: #2563eb;
+            --accent-blue: #4f6ef7;
+            --accent-glow: rgba(79, 110, 247, 0.35);
             --accent-purple: #9333ea;
-            --accent-green: #16a34a;
-            --accent-red: #dc2626;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
 
             /* Palette for Drawing */
             --palette-red: #FF4444;
@@ -135,6 +141,7 @@
             top: 0;
             left: 0;
             touch-action: none;
+            cursor: crosshair;
         }
 
         /* UI Overlay Layers */
@@ -181,14 +188,17 @@
             justify-content: center;
             cursor: pointer;
             pointer-events: auto;
+            transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
         }
 
         .drawer-handle:hover {
             color: var(--text-main);
+            background: rgba(255, 255, 255, 0.04);
         }
 
         .drawer-handle:active {
             background: var(--surface-btn);
+            transform: scale(0.95);
         }
 
         /* Left Drawer */
@@ -205,12 +215,7 @@
             width: 100%;
             justify-content: center;
             align-items: center;
-            background: var(--overlay-tools);
-            padding: 8px 16px;
-            border-radius: 16px;
-            border: 1px solid var(--border-btn);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            padding: 2px 16px;
         }
 
         .slider-group {
@@ -220,22 +225,16 @@
         }
 
         #slider-controls span {
-            font-size: 11px;
-            font-weight: 700;
+            font-size: 10px;
+            font-weight: 600;
             color: var(--text-muted);
-            letter-spacing: 1px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
         }
 
         #slider-controls input[type=range] {
             width: 120px;
         }
-
-        /* Actually we want to hide the content but keep handle visible? 
-           The original app translates -100% + 20px overlap or attaches handle to side.
-           Let's mimic: The handle is OUTSIDE the translation container in standard CSS 
-           or the container includes the handle.
-           Let's structure: [Content][Handle] -> translate based on Content width.
-        */
 
         #drawer-left .drawer-content {
             border-left: none;
@@ -290,7 +289,8 @@
         #drawer-bottom .drawer-content {
             width: 100%;
             border-bottom: none;
-            padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+            border-radius: 16px 16px 0 0;
+            padding: 12px 8px calc(20px + env(safe-area-inset-bottom, 0px));
             align-items: center;
         }
 
@@ -308,38 +308,41 @@
         .btn-circle {
             width: 48px;
             height: 48px;
-            border-radius: 50%;
+            border-radius: 13px;
             border: 1px solid var(--border-btn);
             background: var(--surface-btn);
-            color: #ccc;
+            color: var(--text-muted);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
 
         .btn-circle:hover {
-            transform: scale(1.05);
+            transform: scale(1.07);
             background: var(--surface-btn-hover);
-            color: #fff;
+            color: var(--text-main);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.08);
         }
 
         .btn-circle:active {
-            transform: scale(0.95);
+            transform: scale(0.93);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
         }
 
         .btn-circle:disabled {
-            opacity: 0.4;
+            opacity: 0.32;
             cursor: not-allowed;
+            transform: none;
         }
 
         .btn-primary,
         .btn-success,
         .btn-danger,
         .btn-purple {
-            color: #ccc;
+            color: var(--text-muted);
             background-color: var(--surface-btn);
             border-color: var(--border-btn);
         }
@@ -352,32 +355,25 @@
         }
 
         .label-sm {
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #888;
-            font-weight: 700;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            font-weight: 600;
             text-align: center;
             width: 100%;
-            border-bottom: 1px solid #333;
-            padding-bottom: 4px;
-            margin-bottom: 2px;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         /* Tools Bar */
         .tools-container {
             display: flex;
-            gap: 16px;
-            background: var(--overlay-tools);
-            padding: 8px 16px;
+            gap: 4px;
+            padding: 2px 0;
             justify-content: center;
-            border-radius: 16px;
             align-items: center;
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-btn);
             overflow-x: auto;
             max-width: 95vw;
             -webkit-overflow-scrolling: touch;
@@ -400,49 +396,58 @@
         .tool-btn {
             background: transparent;
             border: none;
-            color: #888;
-            padding: 8px;
-            border-radius: 8px;
+            color: var(--text-muted);
+            padding: 7px 10px 5px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
         }
 
         .tool-btn:hover {
-            color: #fff;
-            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.07);
         }
 
         .tool-btn.active {
-            color: #f1f5f9;
-            background: #475569;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            color: #fff;
+            background: var(--accent-blue);
+            box-shadow: 0 2px 10px var(--accent-glow);
         }
 
-
+        .tool-label {
+            font-size: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            line-height: 1;
+            pointer-events: none;
+        }
 
         /* Colors */
-
-
         .color-swatch {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            border: 2px solid transparent;
+            border: none;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
             flex-shrink: 0;
         }
 
         .color-row {
             display: flex;
-            gap: 12px;
-            margin-bottom: 8px;
+            gap: 10px;
+            margin-bottom: 0;
+            padding: 6px 12px 12px;
             overflow-x: auto;
             max-width: 100%;
-            padding: 4px 16px;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
-            /* Firefox */
+            border-bottom: 1px solid var(--border-color);
         }
 
         .color-row::-webkit-scrollbar {
@@ -450,9 +455,8 @@
         }
 
         .color-swatch.active {
-            border-color: #fff;
-            transform: scale(1.15);
-            box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+            transform: scale(1.12);
+            box-shadow: 0 0 0 2px var(--bg-color), 0 0 0 4px rgba(255, 255, 255, 0.75);
         }
 
         /* Slider */
@@ -465,18 +469,19 @@
 
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            height: 20px;
-            width: 20px;
+            height: 16px;
+            width: 16px;
             border-radius: 50%;
-            background: #ccc;
-            margin-top: -8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            background: var(--text-main);
+            margin-top: -6px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
+            cursor: pointer;
         }
 
         input[type=range]::-webkit-slider-runnable-track {
             width: 100%;
             height: 4px;
-            background: #555;
+            background: rgba(255, 255, 255, 0.14);
             border-radius: 2px;
         }
 
@@ -497,8 +502,8 @@
         #compare-line {
             width: 2px;
             height: 100%;
-            background: rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(4px);
+            background: rgba(255, 255, 255, 0.75);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3), 0 0 2px rgba(255, 255, 255, 0.6);
         }
 
         #compare-handle {
@@ -517,8 +522,16 @@
             justify-content: center;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
             cursor: move;
-            /* Indicates 2D movement */
             touch-action: none;
+            transition: transform 0.15s ease;
+        }
+
+        #compare-handle:hover {
+            transform: translate(-50%, -50%) scale(1.08);
+        }
+
+        #compare-handle:active {
+            transform: translate(-50%, -50%) scale(0.96);
         }
 
         /* Update Prompt */
@@ -527,7 +540,7 @@
             bottom: calc(24px + env(safe-area-inset-bottom, 0px));
             left: 50%;
             transform: translateX(-50%) translateY(150%);
-            background: #2563eb;
+            background: var(--accent-blue);
             color: #fff;
             padding: 10px 20px;
             border-radius: 50px;
@@ -547,7 +560,7 @@
 
         .btn-update {
             background: #fff;
-            color: #2563eb;
+            color: var(--accent-blue);
             border: none;
             padding: 6px 14px;
             border-radius: 20px;
@@ -566,7 +579,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            opacity: 0.3;
+            opacity: 0.45;
             pointer-events: none;
             overflow: hidden;
             padding: 0 20px;
@@ -574,9 +587,8 @@
             transition: opacity 0.2s ease;
         }
 
-
         .empty-state p {
-            white-space: nowrap;
+            max-width: 280px;
         }
 
         /* Icons */
@@ -597,17 +609,29 @@
 
         /* Touch feedback for all interactive elements */
         .tool-btn:active {
-            transform: scale(0.9);
-            background: rgba(255, 255, 255, 0.15);
+            transform: scale(0.88);
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .color-swatch:active {
-            transform: scale(0.9);
+            transform: scale(0.88);
         }
 
         .drawer-handle:active {
             background: var(--surface-btn-hover);
             transform: scale(0.95);
+        }
+
+        /* Keyboard accessibility — focus rings */
+        :focus-visible {
+            outline: 2px solid var(--accent-blue);
+            outline-offset: 3px;
+            border-radius: 6px;
+        }
+
+        .color-swatch:focus-visible {
+            outline-offset: 4px;
+            border-radius: 50%;
         }
 
         @media (max-width: 640px) {
@@ -651,21 +675,25 @@
 
             /* Tool buttons — ensure 44px touch target */
             .tool-btn {
-                padding: 10px;
+                padding: 8px 10px 6px;
                 min-width: 44px;
                 min-height: 44px;
+                gap: 2px;
             }
 
-            /* Color swatches */
+            .tool-label {
+                font-size: 7px;
+            }
+
+            /* Color swatches — bigger for touch */
             .color-swatch {
-                width: 34px;
-                height: 34px;
+                width: 40px;
+                height: 40px;
             }
 
             .color-row {
-                gap: 8px;
-                padding: 4px 8px;
-                justify-content: flex-start;
+                gap: 12px;
+                padding: 8px 12px 14px;
             }
 
             /* Range sliders — bigger thumb */
@@ -728,9 +756,9 @@
 
             #slider-controls span {
                 font-size: 10px;
-                font-weight: bold;
+                font-weight: 600;
                 color: var(--text-muted);
-                letter-spacing: 1px;
+                letter-spacing: 0.06em;
                 display: inline !important;
             }
 
@@ -753,29 +781,19 @@
             }
 
             /* Splash screen */
+            .splash-card {
+                padding: 32px 24px 28px;
+                border-radius: 20px;
+            }
+
             .splash-title {
-                font-size: 24px;
+                font-size: 22px;
             }
 
-            .splash-subtitle {
-                font-size: 16px;
-            }
-
-            .splash-attribution {
-                font-size: 14px;
-            }
-
-            .splash-attribution strong {
-                font-size: 16px;
-            }
-
-            .btn-start {
-                padding: 14px 36px;
-                font-size: 16px;
-            }
-
-            .splash-content {
-                gap: 16px;
+            .splash-icon-wrap {
+                width: 58px;
+                height: 58px;
+                margin-bottom: 22px;
             }
 
             /* Labels */
@@ -840,8 +858,8 @@
             }
 
             .color-swatch {
-                width: 26px;
-                height: 26px;
+                width: 24px;
+                height: 24px;
             }
 
             .tools-container {
@@ -850,21 +868,48 @@
             }
 
             .tool-btn {
-                padding: 6px;
+                padding: 6px 8px 4px;
+                gap: 2px;
+            }
+
+            .tool-label {
+                font-size: 6px;
             }
 
             /* Splash adjustments */
+            .splash-card {
+                padding: 24px 20px 20px;
+                border-radius: 16px;
+            }
+
+            .splash-icon-wrap {
+                width: 48px;
+                height: 48px;
+                border-radius: 13px;
+                margin-bottom: 16px;
+            }
+
             .splash-title {
-                font-size: 20px;
+                font-size: 18px;
+                margin-bottom: 6px;
             }
 
             .splash-subtitle {
-                font-size: 14px;
+                font-size: 12px;
+                margin-bottom: 20px;
+            }
+
+            .splash-divider {
+                margin-bottom: 18px;
+            }
+
+            .splash-credits {
+                gap: 10px;
+                margin-bottom: 20px;
             }
 
             .btn-start {
-                margin-top: 16px;
-                padding: 10px 28px;
+                padding: 12px 0;
                 font-size: 14px;
             }
         }
@@ -873,94 +918,159 @@
         #splash-screen {
             position: fixed;
             inset: 0;
-            background: var(--bg-color);
+            background: radial-gradient(ellipse at 50% 38%, #1a1a2a 0%, #0a0a0e 68%);
             z-index: 100;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
-            text-align: center;
-            padding: 32px;
+            padding: 24px;
             transition: opacity 0.5s ease;
         }
 
-        .splash-content {
-            max-width: 600px;
+        .splash-card {
+            background: #1a1a2a;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            box-shadow:
+                0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+                0 12px 32px rgba(0, 0, 0, 0.3),
+                0 2px 8px rgba(0, 0, 0, 0.2);
+            padding: 44px 44px 36px;
+            max-width: 460px;
+            width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 24px;
-            animation: fadeIn 0.8s ease-out;
+            animation: splashIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .splash-icon-wrap {
+            width: 68px;
+            height: 68px;
+            border-radius: 18px;
+            background: linear-gradient(150deg, #4f6ef7 0%, #3d5cd9 100%);
+            border: none;
+            box-shadow: 0 6px 20px rgba(79, 110, 247, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 28px;
+            flex-shrink: 0;
         }
 
         .splash-title {
-            font-size: 32px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, #fff 0%, #aaa 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.4px;
+            color: #f0f0f4;
+            text-align: center;
+            line-height: 1.25;
+            margin-bottom: 10px;
         }
 
         .splash-subtitle {
-            font-size: 20px;
-            color: var(--text-muted);
-            font-weight: 500;
-            line-height: 1.4;
+            font-size: 14px;
+            color: #8888a0;
+            font-weight: 400;
+            line-height: 1.65;
+            text-align: center;
+            margin-bottom: 32px;
         }
 
-        .splash-attribution {
-            margin-top: 16px;
-            font-size: 16px;
-            color: #666;
-            font-style: italic;
-            border-top: 1px solid #333;
-            padding-top: 24px;
+        .splash-divider {
             width: 100%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.08);
+            margin-bottom: 28px;
         }
 
-        .splash-attribution strong {
-            color: var(--text-main);
-            font-style: normal;
-            display: block;
-            margin-top: 4px;
-            font-size: 18px;
+        .splash-credits {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 32px;
+        }
+
+        .splash-credit {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .splash-credit-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: #24243a;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #8888a0;
+        }
+
+        .splash-credit-avatar svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .splash-credit-label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #9ca3af;
+            margin-bottom: 3px;
+        }
+
+        .splash-credit-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #f0f0f4;
+            line-height: 1.2;
         }
 
         .btn-start {
-            margin-top: 32px;
-            padding: 16px 48px;
-            font-size: 18px;
-            font-weight: bold;
+            width: 100%;
+            padding: 15px 0;
+            font-size: 15px;
+            font-weight: 600;
             color: #fff;
-            background: var(--surface-btn);
-            border: 1px solid var(--border-btn);
-            border-radius: 50px;
+            background: var(--accent-blue);
+            border: none;
+            border-radius: 12px;
             cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            text-transform: uppercase;
-            letter-spacing: 2px;
+            transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+            box-shadow: 0 4px 20px var(--accent-glow);
+            letter-spacing: 0.3px;
         }
 
         .btn-start:hover {
-            background: var(--surface-btn-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            background: #6080ff;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 32px rgba(79, 110, 247, 0.5);
+        }
+
+        .btn-start:active {
+            transform: translateY(0);
+        }
+
+        @keyframes splashIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.97);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -977,44 +1087,53 @@
 
         <!-- Splash Screen -->
         <div id="splash-screen">
-            <div class="splash-content">
+            <div class="splash-card">
+
                 <!-- App Icon -->
-                <svg viewBox="0 0 64 64"
-                    style="width:80px; height:80px; margin-bottom:24px; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4));">
-                    <defs>
-                        <linearGradient id="iconGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                            <stop offset="0%" style="stop-color:#2a2a2a;stop-opacity:1" />
-                            <stop offset="100%" style="stop-color:#1a1a1a;stop-opacity:1" />
-                        </linearGradient>
-                    </defs>
-                    <!-- Icon Background -->
-                    <rect x="0" y="0" width="64" height="64" rx="14" fill="url(#iconGradient)" stroke="#333"
-                        stroke-width="1" />
+                <div class="splash-icon-wrap">
+                    <svg viewBox="0 0 64 64" style="width:42px;height:42px;">
+                        <path d="M32 13 L38 26 L52 27 L41 36 L44 50 L32 43 L20 50 L23 36 L12 27 L26 26 Z"
+                            fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-linejoin="round" />
+                        <path d="M32 13 L38 26 L52 27 L41 36 L44 50 L32 43" fill="none"
+                            stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                        <circle cx="32" cy="43" r="3.5" fill="#ffffff" />
+                    </svg>
+                </div>
 
-                    <!-- The Object (Simple Star) -->
-                    <path d="M32 13 L38 26 L52 27 L41 36 L44 50 L32 43 L20 50 L23 36 L12 27 L26 26 Z" fill="#333"
-                        stroke="#e5e5e5" stroke-width="2" stroke-linejoin="round" />
+                <h1 class="splash-title">Salient Feature<br>Highlighter</h1>
+                <p class="splash-subtitle">Multi-panel annotation tool for<br>Comparative Language Discussions</p>
 
-                    <!-- The Trace (Red Highlight) -->
-                    <path d="M32 13 L38 26 L52 27 L41 36 L44 50 L32 43" fill="none" stroke="#FF4444" stroke-width="3"
-                        stroke-linecap="round" stroke-linejoin="round" />
+                <div class="splash-divider"></div>
 
-                    <!-- Active Point Indicator -->
-                    <circle cx="32" cy="43" r="3" fill="#FF4444" stroke="#1a1a1a" stroke-width="1" />
-                </svg>
-
-                <h1 class="splash-title">Salient Feature Highlighter</h1>
-                <h2 class="splash-subtitle">With multi-panel support for<br>Comparative Language Discussions</h2>
-
-                <div class="splash-attribution">
-                    <p style="margin-bottom:12px;">App by <strong>Niall Brown</strong></p>
-                    <p style="font-size:14px; color:#888;">
-                        Concepts based on the work of<br>
-                        <strong>Dr. Christine Roman-Lantzy</strong>
-                    </p>
+                <div class="splash-credits">
+                    <div class="splash-credit">
+                        <div class="splash-credit-avatar">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="splash-credit-label">Created by</div>
+                            <div class="splash-credit-name">Niall Brown</div>
+                        </div>
+                    </div>
+                    <div class="splash-credit">
+                        <div class="splash-credit-avatar">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="splash-credit-label">Based on the work of</div>
+                            <div class="splash-credit-name">Dr. Christine Roman-Lantzy</div>
+                        </div>
+                    </div>
                 </div>
 
                 <button class="btn-start" onclick="app.dismissSplash()">Get Started</button>
+
             </div>
         </div>
 
@@ -1022,27 +1141,29 @@
 
         <!-- Empty State Placeholders -->
         <div id="empty-message-left" class="empty-state">
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" style="width:36px;height:36px;">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                 <circle cx="8.5" cy="8.5" r="1.5"></circle>
                 <polyline points="21 15 16 10 5 21"></polyline>
             </svg>
-            <p style="margin-top:8px; font-weight:bold;">CHOOSE AN IMAGE</p>
+            <p style="margin-top:12px; font-weight:600; font-size:13px; letter-spacing:0.04em;">Open an image</p>
+            <p style="margin-top:4px; font-size:11px; font-weight:400; opacity:0.6;">Tap the &lsaquo; panel on the left</p>
         </div>
 
         <div id="empty-message-right" class="empty-state" style="display:none;">
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" style="width:36px;height:36px;">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                 <circle cx="8.5" cy="8.5" r="1.5"></circle>
                 <polyline points="21 15 16 10 5 21"></polyline>
             </svg>
-            <p style="margin-top:8px; font-weight:bold;">LOAD COMPARISON</p>
+            <p style="margin-top:12px; font-weight:600; font-size:13px; letter-spacing:0.04em;">Load comparison</p>
+            <p style="margin-top:4px; font-size:11px; font-weight:400; opacity:0.6;">Tap the panel on the right &rsaquo;</p>
         </div>
 
         <!-- Comparison Slider -->
         <div id="compare-slider" style="display:none; left: 50%;">
             <div id="compare-line"></div>
-            <div id="compare-handle">
+            <div id="compare-handle" title="Drag to compare">
                 <svg viewBox="0 0 24 24">
                     <rect x="5" y="4" width="6" height="16" rx="1" />
                     <rect x="13" y="4" width="6" height="16" rx="1" />
@@ -1072,19 +1193,19 @@
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                     </button>
-                    <button class="btn-circle" id="btn-undo-left" onclick="app.undo('left')" disabled>
+                    <button class="btn-circle" id="btn-undo-left" onclick="app.undo('left')" title="Undo (Ctrl+Z)" disabled>
                         <svg viewBox="0 0 24 24">
                             <path d="M3 7v6h6"></path>
                             <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
                         </svg>
                     </button>
-                    <button class="btn-circle" id="btn-redo-left" onclick="app.redo('left')" disabled>
+                    <button class="btn-circle" id="btn-redo-left" onclick="app.redo('left')" title="Redo (Ctrl+Shift+Z)" disabled>
                         <svg viewBox="0 0 24 24">
                             <path d="M21 7v6h-6"></path>
                             <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
                         </svg>
                     </button>
-                    <button class="btn-circle btn-danger" onclick="app.clear('left')">
+                    <button class="btn-circle btn-danger" onclick="app.clear('left')" title="Clear all marks">
                         <svg viewBox="0 0 24 24">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
@@ -1093,7 +1214,7 @@
                     </button>
                     <div class="separator"></div>
                     <button class="btn-circle" id="btn-compare" onclick="app.toggleCompare()"
-                        style="color:var(--text-muted)">
+                        title="Compare side-by-side (C)" style="color:var(--text-muted)">
                         <svg viewBox="0 0 24 24">
                             <rect x="5" y="4" width="6" height="16" rx="1" />
                             <rect x="13" y="4" width="6" height="16" rx="1" />
@@ -1111,7 +1232,8 @@
             <div id="drawer-right" class="drawer" style="display:none;">
                 <div class="drawer-content">
                     <div class="label-sm">COMPARE</div>
-                    <button class="btn-circle" style="color:var(--text-muted); border-color:var(--border-btn)"
+                    <button class="btn-circle" title="Load comparison image"
+                        style="color:var(--text-muted); border-color:var(--border-btn)"
                         onclick="app.triggerFile('right')">
                         <svg viewBox="0 0 24 24">
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
@@ -1120,26 +1242,26 @@
                         </svg>
                     </button>
                     <div class="separator"></div>
-                    <button class="btn-circle btn-success" onclick="app.save('right')">
+                    <button class="btn-circle btn-success" onclick="app.save('right')" title="Save PNG">
                         <svg viewBox="0 0 24 24">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                     </button>
-                    <button class="btn-circle" id="btn-undo-right" onclick="app.undo('right')" disabled>
+                    <button class="btn-circle" id="btn-undo-right" onclick="app.undo('right')" title="Undo (Ctrl+Z)" disabled>
                         <svg viewBox="0 0 24 24">
                             <path d="M3 7v6h6"></path>
                             <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
                         </svg>
                     </button>
-                    <button class="btn-circle" id="btn-redo-right" onclick="app.redo('right')" disabled>
+                    <button class="btn-circle" id="btn-redo-right" onclick="app.redo('right')" title="Redo (Ctrl+Shift+Z)" disabled>
                         <svg viewBox="0 0 24 24">
                             <path d="M21 7v6h-6"></path>
                             <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
                         </svg>
                     </button>
-                    <button class="btn-circle btn-danger" onclick="app.clear('right')">
+                    <button class="btn-circle btn-danger" onclick="app.clear('right')" title="Clear all marks">
                         <svg viewBox="0 0 24 24">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
@@ -1156,52 +1278,70 @@
 
             <!-- Bottom Drawer -->
             <div id="drawer-bottom" class="drawer">
-                <div class="drawer-handle" onclick="app.toggleDrawer('bottom')">
+                <div class="drawer-handle" onclick="app.toggleDrawer('bottom')" title="Toggle tools panel">
                     <svg viewBox="0 0 24 24" id="icon-handle-bottom">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                 </div>
                 <div class="drawer-content">
                     <!-- Colors -->
-                    <div class="color-row">
+                    <div class="color-row" role="radiogroup" aria-label="Stroke colour">
                         <div class="color-swatch" style="background:var(--palette-red)"
-                            onclick="app.setColor('#FF4444')" data-color="#FF4444"></div>
+                            onclick="app.setColor('#FF4444')" data-color="#FF4444"
+                            title="Red" tabindex="0" role="radio" aria-label="Red"
+                            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setColor('#FF4444')}"></div>
                         <div class="color-swatch" style="background:var(--palette-orange)"
-                            onclick="app.setColor('#FF8833')" data-color="#FF8833"></div>
+                            onclick="app.setColor('#FF8833')" data-color="#FF8833"
+                            title="Orange" tabindex="0" role="radio" aria-label="Orange"
+                            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setColor('#FF8833')}"></div>
                         <div class="color-swatch" style="background:var(--palette-yellow)"
-                            onclick="app.setColor('#FFD700')" data-color="#FFD700"></div>
+                            onclick="app.setColor('#FFD700')" data-color="#FFD700"
+                            title="Yellow" tabindex="0" role="radio" aria-label="Yellow"
+                            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setColor('#FFD700')}"></div>
                         <div class="color-swatch" style="background:var(--palette-green)"
-                            onclick="app.setColor('#44DD44')" data-color="#44DD44"></div>
+                            onclick="app.setColor('#44DD44')" data-color="#44DD44"
+                            title="Green" tabindex="0" role="radio" aria-label="Green"
+                            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setColor('#44DD44')}"></div>
                         <div class="color-swatch" style="background:var(--palette-blue)"
-                            onclick="app.setColor('#4488FF')" data-color="#4488FF"></div>
+                            onclick="app.setColor('#4488FF')" data-color="#4488FF"
+                            title="Blue" tabindex="0" role="radio" aria-label="Blue"
+                            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setColor('#4488FF')}"></div>
                         <div class="color-swatch" style="background:var(--palette-purple)"
-                            onclick="app.setColor('#BB66FF')" data-color="#BB66FF"></div>
+                            onclick="app.setColor('#BB66FF')" data-color="#BB66FF"
+                            title="Purple" tabindex="0" role="radio" aria-label="Purple"
+                            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setColor('#BB66FF')}"></div>
                         <div class="color-swatch" style="background:var(--palette-white)"
-                            onclick="app.setColor('#FFFFFF')" data-color="#FFFFFF"></div>
+                            onclick="app.setColor('#FFFFFF')" data-color="#FFFFFF"
+                            title="White" tabindex="0" role="radio" aria-label="White"
+                            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setColor('#FFFFFF')}"></div>
                         <div class="color-swatch" style="background:var(--palette-black)"
-                            onclick="app.setColor('#000000')" data-color="#000000"></div>
+                            onclick="app.setColor('#000000')" data-color="#000000"
+                            title="Black" tabindex="0" role="radio" aria-label="Black"
+                            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setColor('#000000')}"></div>
                     </div>
 
                     <!-- Tools -->
                     <div class="tools-container">
-                        <button class="tool-btn active" data-tool="pen" onclick="app.setTool('pen')" title="Pen">
+                        <button class="tool-btn active" data-tool="pen" onclick="app.setTool('pen')" title="Pen (P)">
                             <svg viewBox="0 0 24 24">
                                 <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
                                 <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
                                 <path d="M2 2l7.586 7.586"></path>
                                 <circle cx="11" cy="11" r="2"></circle>
                             </svg>
+                            <span class="tool-label">Pen</span>
                         </button>
                         <button class="tool-btn" data-tool="magnet" onclick="app.setTool('magnet')"
-                            title="Smooth Tracer">
+                            title="Edge Tracer — snaps to image edges (M)">
                             <svg viewBox="0 0 24 24">
                                 <path
                                     d="M6 10a6 6 0 1 1 12 0v7a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-7a2 2 0 1 0-4 0v7a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-7z" />
                                 <path d="M6 13h4" />
                                 <path d="M14 13h4" />
                             </svg>
+                            <span class="tool-label">Tracer</span>
                         </button>
-                        <button class="tool-btn" data-tool="eraser" onclick="app.setTool('eraser')" title="Eraser">
+                        <button class="tool-btn" data-tool="eraser" onclick="app.setTool('eraser')" title="Eraser (E)">
                             <svg viewBox="0 0 24 24">
                                 <path
                                     d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21">
@@ -1209,8 +1349,9 @@
                                 <path d="M22 21H7"></path>
                                 <path d="m5 11 9 9"></path>
                             </svg>
+                            <span class="tool-label">Eraser</span>
                         </button>
-                        <button class="tool-btn" data-tool="hand" onclick="app.setTool('hand')" title="Pan/Zoom">
+                        <button class="tool-btn" data-tool="hand" onclick="app.setTool('hand')" title="Pan / Zoom (H)">
                             <svg viewBox="0 0 24 24">
                                 <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path>
                                 <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path>
@@ -1219,18 +1360,17 @@
                                     d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15">
                                 </path>
                             </svg>
+                            <span class="tool-label">Hand</span>
                         </button>
-
-
                     </div>
 
                     <!-- Slider Controls (visible on mobile below color palette) -->
                     <!-- Slider Controls (Always visible row) -->
                     <div id="slider-controls">
                         <div class="slider-group">
-                            <span>SIZE</span>
+                            <span>SIZE <span id="size-readout" style="opacity:0.55;font-weight:400;">24</span></span>
                             <input type="range" min="2" max="60" value="24" oninput="app.setSize(this.value)"
-                                title="Brush Size">
+                                title="Brush size" aria-label="Brush size">
                         </div>
                         <div id="magnet-slider-container" class="slider-group" style="display:none;">
                             <span>MAG</span>
@@ -1274,7 +1414,6 @@
 
             // UI State
             isComparing: false,
-            sliderPos: 0.5,
             tool: 'pen',
             color: '#FF4444',
             size: 24,
@@ -1288,6 +1427,7 @@
             isDraggingSlider: false,
             sliderPos: 0.5,
             sliderHandleY: 0.5,
+            _rafId: null,
 
             // Pre-computed edge maps (computed once on image load)
             edgeMapLeft: null,
@@ -1295,7 +1435,17 @@
 
             init() {
                 this.canvas = document.getElementById('main-canvas');
+                if (!this.canvas) {
+                    console.error('Canvas element not found');
+                    return;
+                }
+                
                 this.ctx = this.canvas.getContext('2d');
+                if (!this.ctx) {
+                    console.error('Canvas 2D context not supported');
+                    alert('Your browser does not support the required canvas features. Please use a modern browser.');
+                    return;
+                }
 
                 // Listeners included passive:false for touch
                 window.addEventListener('resize', () => this.resize());
@@ -1311,6 +1461,9 @@
                 // Prevent default touch (scrolling)
                 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 
+                // Keyboard shortcuts
+                window.addEventListener('keydown', e => this.onKeyDown(e));
+
                 // File Inputs
                 document.getElementById('file-input-left').onchange = e => this.loadFile(e, 'left');
                 document.getElementById('file-input-right').onchange = e => this.loadFile(e, 'right');
@@ -1324,7 +1477,7 @@
                         this.sliderPos = Math.max(0, Math.min(1, e.clientX / rect.width));
                         this.sliderHandleY = Math.max(0, Math.min(1, e.clientY / rect.height));
                         this.updateUI();
-                        this.draw();
+                        this.scheduleDraw();
                     }
                 });
                 window.addEventListener('pointerup', () => this.isDraggingSlider = false);
@@ -1344,6 +1497,14 @@
             },
 
             // --- Drawing Pipeline ---
+            scheduleDraw() {
+                if (this._rafId) return;
+                this._rafId = requestAnimationFrame(() => {
+                    this._rafId = null;
+                    this.draw();
+                });
+            },
+
             draw() {
                 const dpr = window.devicePixelRatio;
                 const w = this.canvas.width;
@@ -1354,7 +1515,7 @@
                 // Reset
                 this.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 // Match --bg-color
-                this.ctx.fillStyle = '#111111';
+                this.ctx.fillStyle = '#0a0a0e';
                 this.ctx.fillRect(0, 0, w, h);
 
                 const cx = cssW / 2;
@@ -1366,7 +1527,6 @@
                     const img = isRight ? this.imageRight : this.imageLeft;
                     const tx = isRight ? this.txRight : this.txLeft;
                     const paths = isRight ? this.pathsRight : this.pathsLeft;
-                    const isActive = isRight ? (this.currentPath && this.getSideForX(this.currentPath.points[0].x) === 'right') : (this.currentPath && this.getSideForX(this.currentPath.points[0].x) === 'left');
 
                     this.ctx.save();
 
@@ -1394,24 +1554,37 @@
                         this.ctx.drawImage(img, -img.width / 2, -img.height / 2);
                     }
 
-                    // Draw Paths
-                    this.ctx.lineCap = 'round';
-                    this.ctx.lineJoin = 'round';
+                    // Draw Paths on separate layer so eraser only affects paths, not image
+                    if (paths.length > 0 || (this.currentPath && this.currentPath.side === side)) {
+                        // Create temporary canvas for paths
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = w;
+                        tempCanvas.height = h;
+                        const tempCtx = tempCanvas.getContext('2d');
+                        
+                        // Apply same transform to temp canvas
+                        tempCtx.translate(cx * dpr, cy * dpr);
+                        tempCtx.scale(tx.k * dpr, tx.k * dpr);
+                        tempCtx.translate(tx.x, tx.y);
+                        tempCtx.lineCap = 'round';
+                        tempCtx.lineJoin = 'round';
 
-                    // Saved paths
-                    paths.forEach(p => this.renderPath(p));
-
-                    // Current path
-                    // Only draw current path if it started on this side? 
-                    // Actually in current app logic, 'currentPath' holds World Coordinates.
-                    // But World Coords depend on which transform we used.
-                    // Simplified: If dragging on left, we only draw on left tx.
-                    if (this.currentPath) {
-                        // Check if current path belongs to this side transform
-                        // We'll store "side" in currentPath to be safe
-                        if (this.currentPath.side === side) {
-                            this.renderPath(this.currentPath);
+                        // Render all paths to temp canvas
+                        paths.forEach(p => this.renderPathToContext(tempCtx, p));
+                        
+                        // Current path
+                        if (this.currentPath && this.currentPath.side === side) {
+                            this.renderPathToContext(tempCtx, this.currentPath);
                         }
+
+                        // Composite temp canvas onto main canvas
+                        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                        this.ctx.drawImage(tempCanvas, 0, 0);
+                        
+                        // Restore transform for next side
+                        this.ctx.translate(cx * dpr, cy * dpr);
+                        this.ctx.scale(tx.k * dpr, tx.k * dpr);
+                        this.ctx.translate(tx.x, tx.y);
                     }
 
                     this.ctx.restore();
@@ -1425,39 +1598,39 @@
                 }
             },
 
-            renderPath(p) {
+            renderPathToContext(ctx, p) {
                 if (p.points.length < 1) return;
 
-                this.ctx.beginPath();
-                this.ctx.lineWidth = p.size;
+                ctx.beginPath();
+                ctx.lineWidth = p.size;
 
                 if (p.isEraser) {
-                    this.ctx.globalCompositeOperation = 'destination-out';
-                    this.ctx.strokeStyle = '#000000'; // Color doesn't matter for destination-out
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.strokeStyle = '#000000'; // Color doesn't matter for destination-out
                 } else {
-                    this.ctx.globalCompositeOperation = 'source-over';
-                    this.ctx.strokeStyle = p.color;
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = p.color;
                 }
 
                 const pts = p.points;
-                this.ctx.moveTo(pts[0].x, pts[0].y);
+                ctx.moveTo(pts[0].x, pts[0].y);
 
                 if (pts.length < 2) {
-                    this.ctx.lineTo(pts[0].x, pts[0].y);
+                    ctx.lineTo(pts[0].x, pts[0].y);
                 } else {
                     // Quadratic smoothing
                     for (let i = 1; i < pts.length - 2; i++) {
                         const mx = (pts[i].x + pts[i + 1].x) / 2;
                         const my = (pts[i].y + pts[i + 1].y) / 2;
-                        this.ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+                        ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
                     }
                     // Last segment
                     const i = pts.length - 2;
-                    this.ctx.quadraticCurveTo(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
+                    ctx.quadraticCurveTo(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
                 }
 
-                this.ctx.stroke();
-                this.ctx.globalCompositeOperation = 'source-over';
+                ctx.stroke();
+                ctx.globalCompositeOperation = 'source-over';
             },
 
             // --- Interaction ---
@@ -1500,6 +1673,7 @@
 
                 // Middle Mouse Button (Pan)
                 if (e.button === 1 || (e.button === 0 && this.tool === 'hand')) {
+                    this.canvas.style.cursor = 'grabbing';
                     this.gesture.last = { x: e.clientX, y: e.clientY };
                     return;
                 }
@@ -1562,7 +1736,7 @@
 
                     this.gesture.dist = newDist;
                     this.gesture.center = newCenter;
-                    this.draw();
+                    this.scheduleDraw();
                     return;
                 }
 
@@ -1578,7 +1752,7 @@
                         tx.x += dx / tx.k;
                         tx.y += dy / tx.k;
                         this.gesture.last = { x: e.clientX, y: e.clientY };
-                        this.draw();
+                        this.scheduleDraw();
                         return;
                     }
 
@@ -1632,7 +1806,7 @@
                         const d = Math.hypot(wp.x - lastPt.x, wp.y - lastPt.y);
                         if (d > (this.tool === 'magnet' ? 1 : 0.5)) {
                             this.currentPath.points.push(wp);
-                            this.draw();
+                            this.scheduleDraw();
                         }
                     }
                 }
@@ -1657,6 +1831,10 @@
                 }
 
                 this.gesture.last = null;
+                
+                // Reset cursor based on current tool
+                const cursors = { pen: 'crosshair', magnet: 'crosshair', eraser: 'cell', hand: 'grab' };
+                this.canvas.style.cursor = cursors[this.tool] || 'crosshair';
             },
 
             onWheel(e) {
@@ -1700,7 +1878,7 @@
                 tx.x = (e.clientX - cx) / tx.k - wBefore.x;
                 tx.y = (e.clientY - cy) / tx.k - wBefore.y;
 
-                this.draw();
+                this.scheduleDraw();
             },
             // --- Pre-computed Edge Detection for Magnet Tool ---
             computeEdgeMap(img) {
@@ -1713,7 +1891,7 @@
                 const c = document.createElement('canvas');
                 c.width = w;
                 c.height = h;
-                const ctx = c.getContext('2d');
+                const ctx = c.getContext('2d', { willReadFrequently: true });
                 ctx.drawImage(img, 0, 0, w, h);
                 const imageData = ctx.getImageData(0, 0, w, h);
                 const px = imageData.data;
@@ -1853,6 +2031,13 @@
             loadFile(e, side) {
                 const file = e.target.files[0];
                 if (!file) return;
+                
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select a valid image file.');
+                    return;
+                }
+                
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     const img = new Image();
@@ -1867,9 +2052,15 @@
                             this.fitImage('right');
                         }
                         this.updateUI();
-                        this.draw();
+                        this.scheduleDraw();
+                    };
+                    img.onerror = () => {
+                        alert('Failed to load image. Please try a different file.');
                     };
                     img.src = ev.target.result;
+                };
+                reader.onerror = () => {
+                    alert('Failed to read file. Please try again.');
                 };
                 reader.readAsDataURL(file);
                 e.target.value = null; // reset
@@ -1928,6 +2119,8 @@
 
             setTool(t) {
                 this.tool = t;
+                const cursors = { pen: 'crosshair', magnet: 'crosshair', eraser: 'cell', hand: 'grab' };
+                this.canvas.style.cursor = cursors[t] || 'crosshair';
                 this.updateUI();
             },
 
@@ -1943,6 +2136,8 @@
 
             setSize(s) {
                 this.size = parseInt(s);
+                const el = document.getElementById('size-readout');
+                if (el) el.textContent = this.size;
             },
 
             undo(side) {
@@ -1955,7 +2150,7 @@
                     this.redoStackRight.push([...this.pathsRight]);
                     this.pathsRight = this.historyRight.pop();
                 }
-                this.draw();
+                this.scheduleDraw();
                 this.updateUI();
             },
 
@@ -1969,7 +2164,7 @@
                     this.historyRight.push([...this.pathsRight]);
                     this.pathsRight = this.redoStackRight.pop();
                 }
-                this.draw();
+                this.scheduleDraw();
                 this.updateUI();
             },
 
@@ -1983,7 +2178,7 @@
                     this.pathsRight = [];
                     this.redoStackRight = [];
                 }
-                this.draw();
+                this.scheduleDraw();
                 this.updateUI();
             },
 
@@ -1999,18 +2194,9 @@
                 const ctx = c.getContext('2d');
 
                 // Background
-                ctx.fillStyle = '#111111';
+                ctx.fillStyle = '#0a0a0e';
                 ctx.fillRect(0, 0, width, height);
                 if (img) ctx.drawImage(img, 0, 0);
-
-                // Paths
-                ctx.translate(width / 2, height / 2);
-                // Note: Saved paths are in world coords relative to image center (0,0)
-                // So we just draw them centered.
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-
-
 
                 // Re-implement Save logic correctly
                 const inkCanvas = document.createElement('canvas');
@@ -2113,10 +2299,10 @@
                 const btnCompare = document.getElementById('btn-compare');
 
                 if (this.isComparing) {
-                    // Active: Slate highlighting
-                    btnCompare.style.background = '#475569';
-                    btnCompare.style.color = '#f1f5f9';
-                    btnCompare.style.borderColor = '#475569';
+                    // Active: Accent highlighting
+                    btnCompare.style.background = 'var(--accent-blue)';
+                    btnCompare.style.color = '#fff';
+                    btnCompare.style.borderColor = 'transparent';
                 } else {
                     // Inactive: Subtle/Default
                     btnCompare.style.background = ''; // Use class default
@@ -2144,6 +2330,31 @@
                 }
                 if (this.isComparing && this.drawers.right) {
                     this.toggleDrawer('right');
+                }
+            },
+
+            onKeyDown(e) {
+                // Ignore when typing in inputs or on splash screen
+                if (e.target !== document.body && e.target.tagName !== 'CANVAS') return;
+                if (document.getElementById('splash-screen').style.display !== 'none') return;
+
+                const key = e.key.toLowerCase();
+                if (!e.ctrlKey && !e.metaKey) {
+                    switch (key) {
+                        case 'p': this.setTool('pen'); break;
+                        case 'm': this.setTool('magnet'); break;
+                        case 'e': this.setTool('eraser'); break;
+                        case 'h': this.setTool('hand'); break;
+                        case 'c': this.toggleCompare(); break;
+                    }
+                }
+                if ((e.ctrlKey || e.metaKey) && key === 'z') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        this.redo(this.isComparing ? this.getSideForX(window.innerWidth / 2) : 'left');
+                    } else {
+                        this.undo(this.isComparing ? this.getSideForX(window.innerWidth / 2) : 'left');
+                    }
                 }
             },
 
