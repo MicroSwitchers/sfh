@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-
+<!-- Version: v8-clean (Update prompt removed) -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
@@ -17,61 +17,16 @@
     <link rel="apple-touch-icon" href="icon.svg">
 
     <script>
-        let waitingWorker;
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
                         console.log('ServiceWorker registration successful with scope: ', registration.scope);
-
-                        // Force a check on load
-                        registration.update();
-
-                        // Check for updates every hour
-                        setInterval(() => {
-                            registration.update();
-                        }, 60 * 60 * 1000);
-
-                        // Check for updates periodically
-                        registration.onupdatefound = () => {
-                            const installingWorker = registration.installing;
-                            installingWorker.onstatechange = () => {
-                                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    showUpdatePrompt(registration.waiting);
-                                }
-                            };
-                        };
-
-                        // Handle manual check (in case it's already waiting)
-                        if (registration.waiting) {
-                            showUpdatePrompt(registration.waiting);
-                        }
                     })
                     .catch(err => {
                         console.log('ServiceWorker registration failed: ', err);
                     });
             });
-
-            // Reload when new worker takes over
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                window.location.reload();
-            });
-        }
-
-        function showUpdatePrompt(worker) {
-            waitingWorker = worker;
-            const prompt = document.getElementById('update-prompt');
-            prompt.classList.add('visible');
-        }
-
-
-
-        function updateApp() {
-            if (waitingWorker) {
-                waitingWorker.postMessage({ action: 'skipWaiting' });
-            } else {
-                window.location.reload();
-            }
         }
     </script>
     <style>
@@ -432,7 +387,7 @@
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            border: none;
+            border: 2px solid rgba(128, 128, 128, 0.35);
             cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
             flex-shrink: 0;
@@ -532,43 +487,6 @@
 
         #compare-handle:active {
             transform: translate(-50%, -50%) scale(0.96);
-        }
-
-        /* Update Prompt */
-        #update-prompt {
-            position: fixed;
-            bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-            left: 50%;
-            transform: translateX(-50%) translateY(150%);
-            background: var(--accent-blue);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 50px;
-            z-index: 200;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: auto;
-            white-space: nowrap;
-        }
-
-        #update-prompt.visible {
-            transform: translateX(-50%) translateY(0);
-        }
-
-        .btn-update {
-            background: #fff;
-            color: var(--accent-blue);
-            border: none;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
         /* Empty State */
@@ -1079,12 +997,6 @@
 
     <div id="app-container">
 
-        <!-- Update Prompt -->
-        <div id="update-prompt">
-            <span style="font-weight:500; font-size:14px;">Update Available!</span>
-            <button class="btn-update" onclick="updateApp()">Update Now</button>
-        </div>
-
         <!-- Splash Screen -->
         <div id="splash-screen">
             <div class="splash-card">
@@ -1218,6 +1130,12 @@
                         <svg viewBox="0 0 24 24">
                             <rect x="5" y="4" width="6" height="16" rx="1" />
                             <rect x="13" y="4" width="6" height="16" rx="1" />
+                        </svg>
+                    </button>
+                    <button class="btn-circle" id="btn-fullscreen" onclick="app.toggleFullscreen()"
+                        title="Toggle Fullscreen (F)" style="color:var(--text-muted)">
+                        <svg viewBox="0 0 24 24" id="icon-fullscreen">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
                         </svg>
                     </button>
                 </div>
@@ -1463,6 +1381,19 @@
 
                 // Keyboard shortcuts
                 window.addEventListener('keydown', e => this.onKeyDown(e));
+
+                // Fullscreen change detection
+                document.addEventListener('fullscreenchange', () => {
+                    const btn = document.getElementById('btn-fullscreen');
+                    const icon = document.getElementById('icon-fullscreen');
+                    if (document.fullscreenElement) {
+                        btn.style.color = 'var(--accent-blue)';
+                        icon.innerHTML = '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>';
+                    } else {
+                        btn.style.color = 'var(--text-muted)';
+                        icon.innerHTML = '<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>';
+                    }
+                });
 
                 // File Inputs
                 document.getElementById('file-input-left').onchange = e => this.loadFile(e, 'left');
@@ -2096,6 +2027,16 @@
                 this.draw();
             },
 
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log('Error attempting to enable fullscreen:', err);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            },
+
             toggleDrawer(id) {
                 this.drawers[id] = !this.drawers[id];
                 const el = document.getElementById('drawer-' + id);
@@ -2346,6 +2287,7 @@
                         case 'e': this.setTool('eraser'); break;
                         case 'h': this.setTool('hand'); break;
                         case 'c': this.toggleCompare(); break;
+                        case 'f': this.toggleFullscreen(); break;
                     }
                 }
                 if ((e.ctrlKey || e.metaKey) && key === 'z') {

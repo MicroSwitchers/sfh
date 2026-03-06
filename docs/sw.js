@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sfh-v6';
+const CACHE_NAME = 'sfh-v8-clean';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -8,6 +8,9 @@ const ASSETS_TO_CACHE = [
 
 // Install Event - Cache Assets
 self.addEventListener('install', (event) => {
+    // Skip waiting immediately - don't wait for old SW to finish
+    self.skipWaiting();
+    
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             console.log('[Service Worker] Caching all assets');
@@ -43,11 +46,12 @@ self.addEventListener('activate', (event) => {
 
 // Fetch Event
 self.addEventListener('fetch', (event) => {
-    // 1. For HTML requests (navigation), try Network first, then Cache.
-    // This ensures the user gets the latest version if online.
+    // 1. For HTML requests (navigation), ALWAYS try Network first with cache busting
     if (event.request.mode === 'navigate') {
         event.respondWith(
-            fetch(event.request)
+            fetch(event.request.url + '?v=' + CACHE_NAME, { 
+                cache: 'no-store' 
+            })
                 .then((networkResponse) => {
                     return caches.open(CACHE_NAME).then((cache) => {
                         cache.put(event.request, networkResponse.clone());
@@ -55,6 +59,7 @@ self.addEventListener('fetch', (event) => {
                     });
                 })
                 .catch(() => {
+                    // Only use cache if completely offline
                     return caches.match(event.request);
                 })
         );
