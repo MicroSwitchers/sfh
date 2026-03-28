@@ -414,6 +414,55 @@
             box-shadow: 0 0 0 2px var(--bg-color), 0 0 0 4px rgba(255, 255, 255, 0.75);
         }
 
+        /* Background Color Controls */
+        #bg-color-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 12px 8px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .bg-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .bg-color-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .bg-color-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(128, 128, 128, 0.35);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            flex-shrink: 0;
+        }
+
+        .bg-color-swatch:hover {
+            transform: scale(1.08);
+        }
+
+        .bg-color-swatch.active {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 2px var(--panel-bg), 0 0 0 4px rgba(255, 255, 255, 0.7);
+        }
+
+        .bg-color-swatch:focus-visible {
+            outline: 2px solid var(--accent-blue);
+            outline-offset: 3px;
+            border-radius: 50%;
+        }
+
         /* Slider */
         input[type=range] {
             -webkit-appearance: none;
@@ -459,6 +508,7 @@
             height: 100%;
             background: rgba(255, 255, 255, 0.75);
             box-shadow: 0 0 10px rgba(255, 255, 255, 0.3), 0 0 2px rgba(255, 255, 255, 0.6);
+            transition: background 0.2s ease, box-shadow 0.2s ease;
         }
 
         #compare-handle {
@@ -502,11 +552,15 @@
             overflow: hidden;
             padding: 0 20px;
             text-align: center;
-            transition: opacity 0.2s ease;
+            transition: opacity 0.2s ease, color 0.2s ease;
         }
 
         .empty-state p {
             max-width: 280px;
+        }
+
+        .empty-state svg {
+            transition: stroke 0.2s ease;
         }
 
         /* Icons */
@@ -612,6 +666,17 @@
             .color-row {
                 gap: 12px;
                 padding: 8px 12px 14px;
+            }
+
+            /* Background color controls - compact for mobile */
+            #bg-color-controls {
+                padding: 8px 12px 10px;
+                gap: 8px;
+            }
+
+            .bg-color-swatch {
+                width: 36px;
+                height: 36px;
             }
 
             /* Range sliders — bigger thumb */
@@ -1297,6 +1362,37 @@
                                 oninput="app.setMagnetStrength(this.value)">
                         </div>
                     </div>
+
+                    <!-- Background Color Selector -->
+                    <div id="bg-color-controls">
+                        <span class="bg-label">BACKGROUND</span>
+                        <div class="bg-color-row" role="radiogroup" aria-label="Background colour">
+                            <div class="bg-color-swatch" style="background:#0a0a0e"
+                                onclick="app.setBgColor('#0a0a0e')" data-color="#0a0a0e"
+                                title="Dark (Default)" tabindex="0" role="radio" aria-label="Dark"
+                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#0a0a0e')}"></div>
+                            <div class="bg-color-swatch" style="background:#1a1a1a"
+                                onclick="app.setBgColor('#1a1a1a')" data-color="#1a1a1a"
+                                title="Charcoal" tabindex="0" role="radio" aria-label="Charcoal"
+                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#1a1a1a')}"></div>
+                            <div class="bg-color-swatch" style="background:#2a2a2a"
+                                onclick="app.setBgColor('#2a2a2a')" data-color="#2a2a2a"
+                                title="Gray" tabindex="0" role="radio" aria-label="Gray"
+                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#2a2a2a')}"></div>
+                            <div class="bg-color-swatch" style="background:#ffffff"
+                                onclick="app.setBgColor('#ffffff')" data-color="#ffffff"
+                                title="White" tabindex="0" role="radio" aria-label="White"
+                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#ffffff')}"></div>
+                            <div class="bg-color-swatch" style="background:#f0eadc"
+                                onclick="app.setBgColor('#f0eadc')" data-color="#f0eadc"
+                                title="Light Beige" tabindex="0" role="radio" aria-label="Light Beige"
+                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#f0eadc')}"></div>
+                            <div class="bg-color-swatch" style="background:#8b7d6b"
+                                onclick="app.setBgColor('#8b7d6b')" data-color="#8b7d6b"
+                                title="Dark Taupe" tabindex="0" role="radio" aria-label="Dark Taupe"
+                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#8b7d6b')}"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1334,6 +1430,7 @@
             isComparing: false,
             tool: 'pen',
             color: '#FF4444',
+            bgColor: '#0a0a0e', // Default background color
             size: 24,
             magnetStrength: 0.7, // Default 70% smoothness
             drawers: { left: true, right: true, bottom: true },
@@ -1350,6 +1447,19 @@
             // Pre-computed edge maps (computed once on image load)
             edgeMapLeft: null,
             edgeMapRight: null,
+
+            // Helper: Calculate relative luminance to determine if color is light or dark
+            isLightColor(hexColor) {
+                // Remove # if present
+                const hex = hexColor.replace('#', '');
+                // Convert to RGB
+                const r = parseInt(hex.substr(0, 2), 16) / 255;
+                const g = parseInt(hex.substr(2, 2), 16) / 255;
+                const b = parseInt(hex.substr(4, 2), 16) / 255;
+                // Calculate relative luminance (sRGB)
+                const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                return luminance > 0.5; // Light if > 0.5
+            },
 
             init() {
                 this.canvas = document.getElementById('main-canvas');
@@ -1445,8 +1555,8 @@
 
                 // Reset
                 this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                // Match --bg-color
-                this.ctx.fillStyle = '#0a0a0e';
+                // Fill with selected background color
+                this.ctx.fillStyle = this.bgColor;
                 this.ctx.fillRect(0, 0, w, h);
 
                 const cx = cssW / 2;
@@ -1629,6 +1739,7 @@
                         isEraser: this.tool === 'eraser',
                         side: side
                     };
+                    this.updateUI(); // Hide empty messages immediately when drawing starts
                     this.draw();
                 }
             },
@@ -2075,6 +2186,12 @@
                 this.updateUI();
             },
 
+            setBgColor(c) {
+                this.bgColor = c;
+                this.updateUI();
+                this.scheduleDraw();
+            },
+
             setSize(s) {
                 this.size = parseInt(s);
                 const el = document.getElementById('size-readout');
@@ -2135,7 +2252,7 @@
                 const ctx = c.getContext('2d');
 
                 // Background
-                ctx.fillStyle = '#0a0a0e';
+                ctx.fillStyle = this.bgColor;
                 ctx.fillRect(0, 0, width, height);
                 if (img) ctx.drawImage(img, 0, 0);
 
@@ -2185,12 +2302,12 @@
             },
 
             updateUI() {
-                // Empty States
-                const leftEmpty = !this.imageLeft && this.pathsLeft.length === 0;
+                // Empty States - hide if image loaded, paths exist, or actively drawing
+                const leftEmpty = !this.imageLeft && this.pathsLeft.length === 0 && (!this.currentPath || this.currentPath.side !== 'left');
                 document.getElementById('empty-message-left').style.display = leftEmpty ? 'flex' : 'none';
 
                 if (this.isComparing) {
-                    const rightEmpty = !this.imageRight; // Only show message if no image
+                    const rightEmpty = !this.imageRight && this.pathsRight.length === 0 && (!this.currentPath || this.currentPath.side !== 'right');
                     // Position message
                     const rightMsg = document.getElementById('empty-message-right');
                     rightMsg.style.display = rightEmpty ? 'flex' : 'none';
@@ -2235,6 +2352,38 @@
                 document.querySelectorAll('.color-swatch').forEach(sw => {
                     sw.classList.toggle('active', sw.dataset.color === this.color && this.tool !== 'eraser');
                 });
+
+                // Background color active states
+                document.querySelectorAll('.bg-color-swatch').forEach(sw => {
+                    sw.classList.toggle('active', sw.dataset.color === this.bgColor);
+                });
+
+                // Adapt overlay colors based on background lightness
+                const isLight = this.isLightColor(this.bgColor);
+                const overlayColor = isLight ? '#1a1a1a' : '#f0f0f4';
+                const overlayColorRgb = isLight ? '26, 26, 26' : '240, 240, 244';
+
+                // Update empty state messages
+                document.querySelectorAll('.empty-state').forEach(el => {
+                    el.style.color = overlayColor;
+                });
+
+                // Update compare slider line and handle
+                const compareLine = document.getElementById('compare-line');
+                if (compareLine) {
+                    if (isLight) {
+                        compareLine.style.background = `rgba(${overlayColorRgb}, 0.75)`;
+                        compareLine.style.boxShadow = `0 0 10px rgba(${overlayColorRgb}, 0.3), 0 0 2px rgba(${overlayColorRgb}, 0.6)`;
+                    } else {
+                        compareLine.style.background = 'rgba(255, 255, 255, 0.75)';
+                        compareLine.style.boxShadow = '0 0 10px rgba(255, 255, 255, 0.3), 0 0 2px rgba(255, 255, 255, 0.6)';
+                    }
+                }
+
+                const compareHandle = document.getElementById('compare-handle');
+                if (compareHandle) {
+                    compareHandle.style.color = isLight ? '#1a1a1a' : '#fff';
+                }
 
                 // Compare button active style
                 const btnCompare = document.getElementById('btn-compare');
