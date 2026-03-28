@@ -144,6 +144,11 @@
             cursor: pointer;
             pointer-events: auto;
             transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            padding: 0;
+            margin: 0;
+            font: inherit;
         }
 
         .drawer-handle:hover {
@@ -273,6 +278,8 @@
             cursor: pointer;
             transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .btn-circle:hover {
@@ -291,6 +298,15 @@
             opacity: 0.32;
             cursor: not-allowed;
             transform: none;
+        }
+
+        /* Focus styles for keyboard navigation */
+        .btn-circle:focus-visible,
+        .tool-btn:focus-visible,
+        .drawer-handle:focus-visible,
+        .color-swatch:focus-visible {
+            outline: 2px solid var(--accent-blue);
+            outline-offset: 2px;
         }
 
         .btn-primary,
@@ -360,6 +376,8 @@
             align-items: center;
             gap: 3px;
             transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .tool-btn:hover {
@@ -391,6 +409,8 @@
             cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.15s ease;
             flex-shrink: 0;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .color-row {
@@ -456,6 +476,13 @@
             to { transform: translateY(0); opacity: 1; }
         }
 
+        .modal-dialog {
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
         .modal-header {
             padding: 20px 24px;
             border-bottom: 1px solid var(--border-color);
@@ -480,6 +507,8 @@
             align-items: center;
             justify-content: center;
             transition: color 0.2s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .modal-close:hover {
@@ -488,6 +517,16 @@
 
         .modal-body {
             padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+            max-height: calc(90vh - 80px);
+        }
+
+        .save-dialog-body {
+            padding: 24px;
+            overflow-y: auto;
+            flex: 1;
+            max-height: calc(90vh - 80px);
         }
 
         .settings-section {
@@ -520,6 +559,8 @@
             align-items: center;
             gap: 6px;
             cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .settings-color-swatch {
@@ -558,6 +599,67 @@
             font-size: 10px;
             color: var(--text-muted);
             text-align: center;
+        }
+
+        /* Save Comparison Modal */
+        .save-dialog-description {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .save-dialog-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .save-option-btn {
+            background: var(--surface-btn);
+            border: 2px solid var(--border-btn);
+            border-radius: 12px;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+            text-align: left;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .save-option-btn:hover {
+            background: var(--surface-btn-hover);
+            border-color: var(--accent-blue);
+            transform: translateX(4px);
+        }
+
+        .save-option-btn:active {
+            transform: translateX(2px);
+        }
+
+        .save-option-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .save-option-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--accent-blue);
+        }
+
+        .save-option-description {
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
         }
 
         /* Slider */
@@ -876,11 +978,11 @@
         /* Landscape phones — very short screens */
         @media (max-height: 480px) {
             #drawer-left {
-                top: 4px;
+                top: max(8px, env(safe-area-inset-top, 0px));
             }
 
             #drawer-right {
-                top: 4px;
+                top: max(8px, env(safe-area-inset-top, 0px));
             }
 
             .drawer-content {
@@ -899,12 +1001,23 @@
             }
 
             .btn-circle {
-                width: 36px;
-                height: 36px;
+                width: 40px;
+                height: 40px;
             }
 
             .label-sm {
                 display: none;
+            }
+
+            #drawer-left .drawer-handle,
+            #drawer-right .drawer-handle {
+                width: 36px;
+                height: 80px;
+            }
+
+            #drawer-bottom .drawer-handle {
+                width: 100px;
+                height: 40px;
             }
 
             .separator {
@@ -980,6 +1093,245 @@
             .btn-start {
                 padding: 12px 0;
                 font-size: 14px;
+            }
+
+            .modal-dialog {
+                max-height: 85vh;
+                width: 95%;
+            }
+
+            .modal-body,
+            .save-dialog-body {
+                padding: 16px;
+                max-height: calc(85vh - 70px);
+            }
+
+            .modal-header {
+                padding: 14px 16px;
+            }
+
+            .modal-title {
+                font-size: 16px;
+            }
+
+            .save-option-btn {
+                padding: 12px 14px;
+            }
+
+            .settings-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* Mobile Landscape (Combined constraints) */
+        @media (max-width: 900px) and (max-height: 500px) {
+            #drawer-left,
+            #drawer-right {
+                top: max(6px, env(safe-area-inset-top, 0px));
+            }
+
+            #drawer-left .drawer-content,
+            #drawer-right .drawer-content {
+                max-height: calc(100vh - 16px);
+                overflow-y: auto;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+            }
+
+            #drawer-left .drawer-content::-webkit-scrollbar,
+            #drawer-right .drawer-content::-webkit-scrollbar {
+                width: 4px;
+            }
+
+            #drawer-left .drawer-content::-webkit-scrollbar-thumb,
+            #drawer-right .drawer-content::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 2px;
+            }
+
+            .btn-circle {
+                width: 38px;
+                height: 38px;
+            }
+
+            #drawer-left .drawer-handle,
+            #drawer-right .drawer-handle {
+                width: 32px;
+                height: 72px;
+            }
+
+            #drawer-bottom .drawer-handle {
+                width: 88px;
+                height: 36px;
+            }
+
+            .drawer-content {
+                padding: 4px;
+                gap: 4px;
+            }
+
+            .separator {
+                margin: 1px 0;
+            }
+
+            .modal-dialog {
+                max-height: 90vh;
+                width: 96%;
+            }
+
+            .modal-body,
+            .save-dialog-body {
+                padding: 12px;
+                max-height: calc(90vh - 60px);
+            }
+
+            .modal-header {
+                padding: 10px 12px;
+            }
+
+            .modal-title {
+                font-size: 14px;
+            }
+
+            .save-option-btn {
+                padding: 10px 12px;
+            }
+
+            .save-option-title {
+                font-size: 13px;
+            }
+
+            .save-option-description {
+                font-size: 11px;
+            }
+
+            .save-option-icon {
+                width: 18px;
+                height: 18px;
+            }
+
+            .settings-color-swatch {
+                width: 40px;
+                height: 40px;
+            }
+
+            .settings-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+
+            /* Splash screen compact for landscape */
+            .splash-card {
+                padding: 16px 20px;
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            .splash-icon-wrap {
+                width: 40px;
+                height: 40px;
+                margin-bottom: 10px;
+            }
+
+            .splash-icon-wrap svg {
+                width: 20px;
+                height: 20px;
+            }
+
+            .splash-title {
+                font-size: 16px;
+                margin-bottom: 4px;
+            }
+
+            .splash-subtitle {
+                font-size: 11px;
+                margin-bottom: 12px;
+            }
+
+            .splash-divider {
+                margin-bottom: 10px;
+            }
+
+            .splash-credits {
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+
+            .credit-item {
+                font-size: 10px;
+            }
+
+            .btn-start {
+                padding: 10px 0;
+                font-size: 13px;
+            }
+
+            /* Make tool buttons more compact */
+            .tool-btn {
+                padding: 5px 7px 4px;
+                min-width: 38px;
+                min-height: 38px;
+                gap: 1px;
+            }
+
+            .tool-label {
+                font-size: 6px;
+            }
+
+            /* Compact color row */
+            .color-swatch {
+                width: 28px;
+                height: 28px;
+            }
+
+            .color-row {
+                gap: 6px;
+                padding: 4px 8px;
+            }
+
+            /* Compact sliders */
+            #slider-controls {
+                gap: 12px;
+                padding: 2px 8px;
+            }
+
+            .slider-group {
+                gap: 4px;
+            }
+
+            #slider-controls input[type=range] {
+                width: 70px;
+            }
+
+            #slider-controls span,
+            #size-readout {
+                font-size: 8px;
+            }
+
+            input[type=range] {
+                height: 22px;
+            }
+
+            input[type=range]::-webkit-slider-thumb {
+                height: 22px;
+                width: 22px;
+                margin-top: -9px;
+            }
+
+            input[type=range]::-webkit-slider-runnable-track {
+                height: 4px;
+            }
+
+            /* Ensure empty messages are readable */
+            .empty-state {
+                font-size: 13px;
+                padding: 12px;
+            }
+
+            .empty-state svg {
+                width: 36px;
+                height: 36px;
+                margin-bottom: 8px;
             }
         }
 
@@ -1141,12 +1493,155 @@
             from { opacity: 0; transform: translateY(20px); }
             to   { opacity: 1; transform: translateY(0); }
         }
+
+        /* Brush Size Preview */
+        #brush-preview {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            border: 2px solid var(--accent-blue);
+            border-radius: 50%;
+            background: rgba(79, 110, 247, 0.15);
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.3), 
+                        0 4px 12px rgba(79, 110, 247, 0.4);
+            opacity: 0;
+            transition: opacity 0.15s ease, width 0.1s ease, height 0.1s ease;
+            will-change: width, height, transform;
+        }
+
+        #brush-preview.show {
+            opacity: 1;
+        }
+
+        /* Tutorial Modal */
+        .tutorial-section {
+            margin-bottom: 32px;
+        }
+
+        .tutorial-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .tutorial-heading {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tutorial-heading svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--accent-blue);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .tutorial-tool {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tutorial-tool:last-child {
+            margin-bottom: 0;
+        }
+
+        .tutorial-icon {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            border-radius: 8px;
+            border: 1px solid var(--border-btn);
+            background: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+
+        .tutorial-icon svg {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .tutorial-icon.active {
+            background: var(--accent-blue);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .tutorial-content {
+            flex: 1;
+        }
+
+        .tutorial-tool-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .tutorial-tool-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .tutorial-tip {
+            background: rgba(66, 153, 225, 0.1);
+            border-left: 3px solid var(--accent-blue);
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-top: 16px;
+        }
+
+        .tutorial-tip-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+        }
+
+        .tutorial-tip-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .tutorial-kbd {
+            display: inline-block;
+            padding: 2px 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
     </style>
 </head>
 
 <body>
 
     <div id="app-container">
+
+        <!-- Brush Size Preview -->
+        <div id="brush-preview"></div>
 
         <!-- Splash Screen -->
         <div id="splash-screen">
@@ -1196,11 +1691,15 @@
                 </div>
 
                 <button class="btn-start" onclick="app.dismissSplash()">Get Started</button>
+                <button class="btn-start" onclick="app.openTutorial(); app.dismissSplash();" 
+                    style="margin-top: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);">
+                    View Tutorial
+                </button>
 
             </div>
         </div>
 
-        <canvas id="main-canvas"></canvas>
+        <canvas id="main-canvas" role="img" aria-label="Drawing canvas for image annotation"></canvas>
 
         <!-- Empty State Placeholders -->
         <div id="empty-message-left" class="empty-state">
@@ -1249,7 +1748,7 @@
                         </svg>
                     </button>
                     <div class="separator"></div>
-                    <button class="btn-circle btn-success" onclick="app.save('left')" title="Save">
+                    <button class="btn-circle btn-success" onclick="app.openSaveDialog()" title="Save / Export">
                         <svg viewBox="0 0 24 24">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="7 10 12 15 17 10"></polyline>
@@ -1297,11 +1796,11 @@
                         </svg>
                     </button>
                 </div>
-                <div class="drawer-handle" onclick="app.toggleDrawer('left')">
-                    <svg viewBox="0 0 24 24" id="icon-handle-left">
+                <button class="drawer-handle" onclick="app.toggleDrawer('left')" aria-label="Toggle left panel" title="Toggle panel">
+                    <svg viewBox="0 0 24 24" id="icon-handle-left" aria-hidden="true">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
-                </div>
+                </button>
             </div>
 
             <!-- Right Drawer (Compare) -->
@@ -1324,14 +1823,14 @@
                             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                         </svg>
                     </button>
-                    <div class="separator"></div>
-                    <button class="btn-circle btn-success" onclick="app.save('right')" title="Save PNG">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                    <button class="btn-circle" id="btn-lock-transforms" onclick="app.toggleTransformLock()" 
+                        title="Lock zoom and pan together" style="color:var(--text-muted); border-color:var(--border-btn)">
+                        <svg viewBox="0 0 24 24" id="icon-lock">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
                     </button>
+                    <div class="separator"></div>
                     <button class="btn-circle" id="btn-undo-right" onclick="app.undo('right')" title="Undo (Ctrl+Z)" disabled>
                         <svg viewBox="0 0 24 24">
                             <path d="M3 7v6h6"></path>
@@ -1352,20 +1851,20 @@
                         </svg>
                     </button>
                 </div>
-                <div class="drawer-handle" onclick="app.toggleDrawer('right')">
-                    <svg viewBox="0 0 24 24" id="icon-handle-right">
+                <button class="drawer-handle" onclick="app.toggleDrawer('right')" aria-label="Toggle right panel" title="Toggle panel">
+                    <svg viewBox="0 0 24 24" id="icon-handle-right" aria-hidden="true">
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
-                </div>
+                </button>
             </div>
 
             <!-- Bottom Drawer -->
             <div id="drawer-bottom" class="drawer">
-                <div class="drawer-handle" onclick="app.toggleDrawer('bottom')" title="Toggle tools panel">
-                    <svg viewBox="0 0 24 24" id="icon-handle-bottom">
+                <button class="drawer-handle" onclick="app.toggleDrawer('bottom')" aria-label="Toggle tools panel" title="Toggle tools panel">
+                    <svg viewBox="0 0 24 24" id="icon-handle-bottom" aria-hidden="true">
                         <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
-                </div>
+                </button>
                 <div class="drawer-content">
                     <!-- Colors -->
                     <div class="color-row" role="radiogroup" aria-label="Stroke colour">
@@ -1452,7 +1951,14 @@
                     <div id="slider-controls">
                         <div class="slider-group">
                             <span>SIZE <span id="size-readout" style="opacity:0.55;font-weight:400;">24</span></span>
-                            <input type="range" min="2" max="60" value="24" oninput="app.setSize(this.value)"
+                            <input type="range" id="size-slider" min="2" max="60" value="24" 
+                                oninput="app.setSize(this.value)" 
+                                onmousedown="app.showBrushPreview()" 
+                                onmouseup="app.hideBrushPreview()" 
+                                onmouseleave="app.hideBrushPreview()"
+                                ontouchstart="app.showBrushPreview()" 
+                                ontouchend="app.hideBrushPreview()" 
+                                ontouchcancel="app.hideBrushPreview()"
                                 title="Brush size" aria-label="Brush size">
                         </div>
                         <div id="magnet-slider-container" class="slider-group" style="display:none;">
@@ -1461,6 +1967,79 @@
                                 title="Magnet strength (0=no edge snapping, 100=strong edge attraction)"
                                 oninput="app.setMagnetStrength(this.value)">
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Modal -->
+        <div id="save-modal" class="modal-overlay" onclick="if(event.target===this) app.closeSaveDialog()">
+            <div class="modal-dialog">
+                <div class="modal-header">
+                    <h2 class="modal-title">Save / Export</h2>
+                    <button class="modal-close" onclick="app.closeSaveDialog()" aria-label="Close save dialog">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="save-dialog-body">
+                    <p class="save-dialog-description">
+                        Choose what you want to save:
+                    </p>
+                    <div class="save-dialog-options">
+                        <button class="save-option-btn" id="save-main-btn" onclick="app.save('left'); app.closeSaveDialog();">
+                            <div class="save-option-title">
+                                <svg class="save-option-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                Main Image
+                            </div>
+                            <div class="save-option-description">
+                                Save your main image with highlighting
+                            </div>
+                        </button>
+                        <button class="save-option-btn" id="save-comparison-btn" onclick="app.save('right'); app.closeSaveDialog();" style="display:none;">
+                            <div class="save-option-title">
+                                <svg class="save-option-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                Comparison Image
+                            </div>
+                            <div class="save-option-description">
+                                Save your comparison image with highlighting
+                            </div>
+                        </button>
+                        <button class="save-option-btn" id="save-split-btn" onclick="app.saveComparisonSplit(); app.closeSaveDialog();" style="display:none;">
+                            <div class="save-option-title">
+                                <svg class="save-option-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="2" x2="12" y2="22"></line>
+                                    <rect x="2" y="4" width="8" height="16" rx="1"></rect>
+                                    <rect x="14" y="4" width="8" height="16" rx="1"></rect>
+                                </svg>
+                                Split View
+                            </div>
+                            <div class="save-option-description">
+                                Save the current split view exactly as displayed with your custom slider position
+                            </div>
+                        </button>
+                        <button class="save-option-btn" id="save-sidebyside-btn" onclick="app.saveComparisonSideBySide(); app.closeSaveDialog();" style="display:none;">
+                            <div class="save-option-title">
+                                <svg class="save-option-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="4" width="9" height="16" rx="1"></rect>
+                                    <rect x="13" y="4" width="9" height="16" rx="1"></rect>
+                                </svg>
+                                Side-by-Side
+                            </div>
+                            <div class="save-option-description">
+                                Save both full canvases next to each other (50/50 split)
+                            </div>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1479,6 +2058,17 @@
                     </button>
                 </div>
                 <div class="modal-body">
+                    <div class="settings-section" style="margin-bottom: 16px;">
+                        <button class="btn-start" onclick="app.openTutorial()" 
+                            style="width: 100%; background: var(--accent-blue); color: #fff; padding: 12px; font-size: 14px;">
+                            <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; vertical-align: middle; margin-right: 8px;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                            View Tutorial
+                        </button>
+                    </div>
                     <div class="settings-section">
                         <label class="settings-label">Background Color</label>
                         <div class="settings-grid">
@@ -1508,6 +2098,158 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tutorial Modal -->
+        <div id="tutorial-modal" class="modal-overlay" onclick="if(event.target===this) app.closeTutorial()">
+            <div class="modal-dialog" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h2 class="modal-title">Tutorial</h2>
+                    <button class="modal-close" onclick="app.closeTutorial()" aria-label="Close tutorial">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    
+                    <!-- Drawing Tools -->
+                    <div class="tutorial-section">
+                        <div class="tutorial-heading">
+                            <svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>
+                            Drawing Tools
+                        </div>
+                        
+                        <div class="tutorial-tool">
+                            <div class="tutorial-icon active">
+                                <svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>
+                            </div>
+                            <div class="tutorial-content">
+                                <div class="tutorial-tool-name">Pen Tool</div>
+                                <div class="tutorial-tool-desc">Draw freehand strokes to highlight areas. Click/tap and drag to draw. Use the color swatches and size slider to customize your strokes.</div>
+                            </div>
+                        </div>
+
+                        <div class="tutorial-tool">
+                            <div class="tutorial-icon">
+                                <svg viewBox="0 0 24 24"><path d="M6 10a6 6 0 1 1 12 0v7a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-7a2 2 0 1 0-4 0v7a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-7z" /><path d="M6 13h4" /><path d="M14 13h4" /></svg>
+                            </div>
+                            <div class="tutorial-content">
+                                <div class="tutorial-tool-name">Magnet Tool</div>
+                                <div class="tutorial-tool-desc">Intelligent edge-snapping tool that helps you trace image features precisely. Your strokes will automatically snap to nearby edges. Adjust the slider to control snap strength.</div>
+                            </div>
+                        </div>
+
+                        <div class="tutorial-tool">
+                            <div class="tutorial-icon">
+                                <svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"></path><path d="M22 21H7"></path><path d="m5 11 9 9"></path></svg>
+                            </div>
+                            <div class="tutorial-content">
+                                <div class="tutorial-tool-name">Eraser Tool</div>
+                                <div class="tutorial-tool-desc">Remove strokes by drawing over them. Only affects your highlighting, not the underlying image.</div>
+                            </div>
+                        </div>
+
+                        <div class="tutorial-tool">
+                            <div class="tutorial-icon">
+                                <svg viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"></path><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"></path><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"></path><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg>
+                            </div>
+                            <div class="tutorial-content">
+                                <div class="tutorial-tool-name">Hand Tool</div>
+                                <div class="tutorial-tool-desc">Pan/move around your image. You can also hold middle mouse button or use two fingers on touch screens to pan while using other tools.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main Controls -->
+                    <div class="tutorial-section">
+                        <div class="tutorial-heading">
+                            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+                            Main Controls
+                        </div>
+                        
+                        <div class="tutorial-tool">
+                            <div class="tutorial-icon">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </div>
+                            <div class="tutorial-content">
+                                <div class="tutorial-tool-name">Load Image</div>
+                                <div class="tutorial-tool-desc">Click to load an image from your device. Supports JPG, PNG, and other standard image formats.</div>
+                            </div>
+                        </div>
+
+                        <div class="tutorial-tool">
+                            <div class="tutorial-icon">
+                                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            </div>
+                            <div class="tutorial-content">
+                                <div class="tutorial-tool-name">Save</div>
+                                <div class="tutorial-tool-desc">Export your highlighted images. Choose to save the main image, comparison image, split view, or side-by-side comparison at full original resolution.</div>
+                            </div>
+                        </div>
+
+                        <div class="tutorial-tool">
+                            <div class="tutorial-icon">
+                                <svg viewBox="0 0 24 24"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+                            </div>
+                            <div class="tutorial-content">
+                                <div class="tutorial-tool-name">Undo / Redo</div>
+                                <div class="tutorial-tool-desc">Step backward or forward through your highlighting history.</div>
+                            </div>
+                        </div>
+
+                        <div class="tutorial-tool">
+                            <div class="tutorial-icon">
+                                <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </div>
+                            <div class="tutorial-content">
+                                <div class="tutorial-tool-name">Clear All</div>
+                                <div class="tutorial-tool-desc">Remove all highlighting strokes from the current canvas. The image itself is not affected.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comparison Mode -->
+                    <div class="tutorial-section">
+                        <div class="tutorial-heading">
+                            <svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"></line><rect x="2" y="4" width="8" height="16" rx="1"></rect><rect x="14" y="4" width="8" height="16" rx="1"></rect></svg>
+                            Comparison Mode
+                        </div>
+                        
+                        <div class="tutorial-tool">
+                            <div class="tutorial-icon">
+                                <svg viewBox="0 0 24 24"><line x1="12" y1="2" x2="12" y2="22"></line><rect x="2" y="4" width="8" height="16" rx="1"></rect><rect x="14" y="4" width="8" height="16" rx="1"></rect></svg>
+                            </div>
+                            <div class="tutorial-content">
+                                <div class="tutorial-tool-name">Compare Toggle</div>
+                                <div class="tutorial-tool-desc">Enable split-screen comparison mode. Drag the vertical slider to reveal more of each image. Draw separately on each side to highlight differences.</div>
+                            </div>
+                        </div>
+
+                        <div class="tutorial-tool">
+                            <div class="tutorial-icon">
+                                <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                            <div class="tutorial-content">
+                                <div class="tutorial-tool-name">Duplicate Image</div>
+                                <div class="tutorial-tool-desc">Copy your main image to the comparison side with the same zoom and position. Perfect for before/after comparisons on the same image.</div>
+                            </div>
+                        </div>
+
+                        <div class="tutorial-tool">
+                            <div class="tutorial-icon active">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            </div>
+                            <div class="tutorial-content">
+                                <div class="tutorial-tool-name">Lock Zoom/Pan</div>
+                                <div class="tutorial-tool-desc">When locked (blue), both images zoom and pan together. Also resets both canvases to aligned starting positions. Unlock to control each side independently.</div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -1548,6 +2290,7 @@
             bgColor: '#0a0a0e', // Default background color
             size: 24,
             magnetStrength: 0.7, // Default 70% smoothness
+            transformsLocked: false, // Lock zoom/pan between canvases
             drawers: { left: true, right: true, bottom: true },
 
             // Interaction
@@ -1611,6 +2354,7 @@
                 document.addEventListener('fullscreenchange', () => {
                     const btn = document.getElementById('btn-fullscreen');
                     const icon = document.getElementById('icon-fullscreen');
+                    if (!btn || !icon) return;
                     if (document.fullscreenElement) {
                         btn.style.color = 'var(--accent-blue)';
                         icon.innerHTML = '<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>';
@@ -1626,7 +2370,9 @@
 
                 // Slider
                 const slider = document.getElementById('compare-slider');
-                slider.addEventListener('pointerdown', () => this.isDraggingSlider = true);
+                if (slider) {
+                    slider.addEventListener('pointerdown', () => this.isDraggingSlider = true);
+                }
                 window.addEventListener('pointermove', e => {
                     if (this.isDraggingSlider) {
                         const rect = document.body.getBoundingClientRect();
@@ -1878,18 +2624,24 @@
 
                     // Determine which side to transform based on center of gesture
                     const side = this.getSideForX(newCenter.x);
-                    const tx = side === 'right' ? this.txRight : this.txLeft;
+                    
+                    // When locked, apply to both sides; otherwise just the active side
+                    const transforms = this.transformsLocked && this.isComparing 
+                        ? [this.txLeft, this.txRight] 
+                        : [side === 'right' ? this.txRight : this.txLeft];
 
-                    // Apply Zoom
-                    const oldK = tx.k;
-                    tx.k = Math.max(0.1, Math.min(10, tx.k * zoomFactor));
+                    transforms.forEach(tx => {
+                        // Apply Zoom
+                        const oldK = tx.k;
+                        tx.k = Math.max(0.1, Math.min(10, tx.k * zoomFactor));
 
-                    // Apply Pan (move based on center delta)
-                    const dx = newCenter.x - this.gesture.center.x;
-                    const dy = newCenter.y - this.gesture.center.y;
+                        // Apply Pan (move based on center delta)
+                        const dx = newCenter.x - this.gesture.center.x;
+                        const dy = newCenter.y - this.gesture.center.y;
 
-                    tx.x += dx / tx.k;
-                    tx.y += dy / tx.k;
+                        tx.x += dx / tx.k;
+                        tx.y += dy / tx.k;
+                    });
 
                     this.gesture.dist = newDist;
                     this.gesture.center = newCenter;
@@ -1904,10 +2656,17 @@
                     if (this.gesture.last) {
                         const dx = e.clientX - this.gesture.last.x;
                         const dy = e.clientY - this.gesture.last.y;
-                        // Pan current side
-                        const tx = side === 'right' ? this.txRight : this.txLeft;
-                        tx.x += dx / tx.k;
-                        tx.y += dy / tx.k;
+                        
+                        // When locked, pan both sides; otherwise just the active side
+                        const transforms = this.transformsLocked && this.isComparing 
+                            ? [this.txLeft, this.txRight] 
+                            : [side === 'right' ? this.txRight : this.txLeft];
+                        
+                        transforms.forEach(tx => {
+                            tx.x += dx / tx.k;
+                            tx.y += dy / tx.k;
+                        });
+                        
                         this.gesture.last = { x: e.clientX, y: e.clientY };
                         this.scheduleDraw();
                         return;
@@ -1997,43 +2756,30 @@
             onWheel(e) {
                 e.preventDefault();
                 const side = this.getSideForX(e.clientX);
-                const tx = side === 'right' ? this.txRight : this.txLeft;
-
                 const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
-
-                // Zoom around mouse pointer
-                // 1. World before zoom
-                const wBefore = this.toWorld(e.clientX, e.clientY, side);
-
-                // 2. Apply zoom
-                tx.k = Math.max(0.1, Math.min(10, tx.k * zoomFactor));
-
-                // 3. World after zoom (would be different if we didn't move)
-                // We want the world point under mouse to stay same.
-                // New screen pos = (World + tx) * k + center
-                // We want to adjust tx so that point matches.
-                // Easier logic: adjusting tx.x/y.
-
-                // Effective pan adjustment:
-                // We are scaling around the center of the viewport in our transform logic (cx, cy).
-                // But we want to scale around mouse.
-                // The offset from center is (e.clientX - cx, e.clientY - cy).
-
-                // Let's use the simple approach:
-                // Move world point to keep it under cursor.
-                // Current logic: Screen -> World = (Screen - Center)/k - tx
-                // So Screen = (World + tx) * k + Center
-
-                // We want Screen to be same for wBefore.
-                // (wBefore + newTx) * newK + Center = e.client
-                // wBefore + newTx = (e.client - Center) / newK
-                // newTx = (e.client - Center) / newK - wBefore
-
                 const cx = window.innerWidth / 2;
                 const cy = window.innerHeight / 2;
 
-                tx.x = (e.clientX - cx) / tx.k - wBefore.x;
-                tx.y = (e.clientY - cy) / tx.k - wBefore.y;
+                // When locked, zoom both sides; otherwise just the active side
+                if (this.transformsLocked && this.isComparing) {
+                    // Apply to both sides
+                    [this.txLeft, this.txRight].forEach(tx => {
+                        const wBefore = {
+                            x: (e.clientX - cx) / tx.k - tx.x,
+                            y: (e.clientY - cy) / tx.k - tx.y
+                        };
+                        tx.k = Math.max(0.1, Math.min(10, tx.k * zoomFactor));
+                        tx.x = (e.clientX - cx) / tx.k - wBefore.x;
+                        tx.y = (e.clientY - cy) / tx.k - wBefore.y;
+                    });
+                } else {
+                    // Apply to active side only
+                    const tx = side === 'right' ? this.txRight : this.txLeft;
+                    const wBefore = this.toWorld(e.clientX, e.clientY, side);
+                    tx.k = Math.max(0.1, Math.min(10, tx.k * zoomFactor));
+                    tx.x = (e.clientX - cx) / tx.k - wBefore.x;
+                    tx.y = (e.clientY - cy) / tx.k - wBefore.y;
+                }
 
                 this.scheduleDraw();
             },
@@ -2262,7 +3008,7 @@
                 this.txRight = { ...this.txLeft };
                 
                 // Optionally duplicate paths (starting fresh for comparison)
-                // Uncomment next line to also copy annotations:
+                // Uncomment next line to also copy highlighting:
                 // this.pathsRight = JSON.parse(JSON.stringify(this.pathsLeft));
                 
                 this.updateUI();
@@ -2327,6 +3073,70 @@
                 this.size = parseInt(s);
                 const el = document.getElementById('size-readout');
                 if (el) el.textContent = this.size;
+                
+                // Update brush preview size
+                this.updateBrushPreview();
+            },
+
+            showBrushPreview() {
+                const preview = document.getElementById('brush-preview');
+                if (preview) {
+                    preview.classList.add('show');
+                    this.updateBrushPreview();
+                    
+                    // Track mouse/touch movement to position preview
+                    this._previewMouseMove = (e) => this.updateBrushPreviewPosition(e);
+                    this._previewTouchMove = (e) => {
+                        e.preventDefault();
+                        this.updateBrushPreviewPosition(e);
+                    };
+                    
+                    document.addEventListener('mousemove', this._previewMouseMove);
+                    document.addEventListener('touchmove', this._previewTouchMove, { passive: false });
+                }
+            },
+
+            hideBrushPreview() {
+                const preview = document.getElementById('brush-preview');
+                if (preview) {
+                    preview.classList.remove('show');
+                    
+                    // Remove event listeners
+                    if (this._previewMouseMove) {
+                        document.removeEventListener('mousemove', this._previewMouseMove);
+                        this._previewMouseMove = null;
+                    }
+                    if (this._previewTouchMove) {
+                        document.removeEventListener('touchmove', this._previewTouchMove);
+                        this._previewTouchMove = null;
+                    }
+                }
+            },
+
+            updateBrushPreview() {
+                const preview = document.getElementById('brush-preview');
+                if (preview && preview.classList.contains('show')) {
+                    const size = this.size;
+                    preview.style.width = size + 'px';
+                    preview.style.height = size + 'px';
+                }
+            },
+
+            updateBrushPreviewPosition(e) {
+                const preview = document.getElementById('brush-preview');
+                if (!preview || !preview.classList.contains('show')) return;
+                
+                // Handle both mouse and touch events
+                const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+                const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+                
+                // Position preview centered on cursor with slight offset
+                const size = this.size;
+                const offsetX = 30; // Offset to right of cursor
+                const offsetY = -30; // Offset above cursor
+                
+                preview.style.left = (clientX + offsetX - size / 2) + 'px';
+                preview.style.top = (clientY + offsetY - size / 2) + 'px';
             },
 
             undo(side) {
@@ -2369,6 +3179,206 @@
                 }
                 this.scheduleDraw();
                 this.updateUI();
+            },
+
+            openSaveDialog() {
+                const modal = document.getElementById('save-modal');
+                const mainBtn = document.getElementById('save-main-btn');
+                const comparisonBtn = document.getElementById('save-comparison-btn');
+                const splitBtn = document.getElementById('save-split-btn');
+                const sideBySideBtn = document.getElementById('save-sidebyside-btn');
+
+                // Show/hide options based on mode
+                mainBtn.style.display = 'flex';
+                
+                if (this.isComparing) {
+                    comparisonBtn.style.display = 'flex';
+                    splitBtn.style.display = 'flex';
+                    sideBySideBtn.style.display = 'flex';
+                } else {
+                    comparisonBtn.style.display = 'none';
+                    splitBtn.style.display = 'none';
+                    sideBySideBtn.style.display = 'none';
+                }
+
+                modal.classList.add('show');
+            },
+
+            closeSaveDialog() {
+                document.getElementById('save-modal').classList.remove('show');
+            },
+
+            saveComparison() {
+                // Deprecated - now using unified dialog
+                this.openSaveDialog();
+            },
+
+            closeSaveComparisonDialog() {
+                // Deprecated - now using unified dialog
+                this.closeSaveDialog();
+            },
+
+            saveComparisonSplit() {
+                // Save the current split view exactly as displayed
+                const tempCanvas = document.createElement('canvas');
+                const dpr = window.devicePixelRatio;
+                tempCanvas.width = window.innerWidth * dpr;
+                tempCanvas.height = window.innerHeight * dpr;
+                const tempCtx = tempCanvas.getContext('2d');
+
+                const w = tempCanvas.width;
+                const h = tempCanvas.height;
+                const cssW = window.innerWidth;
+                const cssH = window.innerHeight;
+
+                // Fill background
+                tempCtx.fillStyle = this.bgColor;
+                tempCtx.fillRect(0, 0, w, h);
+
+                const cx = cssW / 2;
+                const cy = cssH / 2;
+                const splitX = this.sliderPos * w;
+
+                // Draw left side
+                tempCtx.save();
+                tempCtx.beginPath();
+                tempCtx.rect(0, 0, splitX, h);
+                tempCtx.clip();
+                this.drawSideToContext(tempCtx, 'left', cx, cy, dpr, w, h);
+                tempCtx.restore();
+
+                // Draw right side
+                tempCtx.save();
+                tempCtx.beginPath();
+                tempCtx.rect(splitX, 0, w - splitX, h);
+                tempCtx.clip();
+                this.drawSideToContext(tempCtx, 'right', cx, cy, dpr, w, h);
+                tempCtx.restore();
+
+                // Draw slider line
+                tempCtx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+                tempCtx.lineWidth = 2;
+                tempCtx.beginPath();
+                tempCtx.moveTo(splitX, 0);
+                tempCtx.lineTo(splitX, h);
+                tempCtx.stroke();
+
+                // Download
+                const a = document.createElement('a');
+                a.download = `sfh-comparison-split-${Date.now()}.png`;
+                a.href = tempCanvas.toDataURL();
+                a.click();
+            },
+
+            saveComparisonSideBySide() {
+                // Save both full canvases side by side
+                const leftImg = this.imageLeft;
+                const rightImg = this.imageRight;
+                const leftPaths = this.pathsLeft;
+                const rightPaths = this.pathsRight;
+
+                const leftWidth = leftImg ? leftImg.width : 1920;
+                const leftHeight = leftImg ? leftImg.height : 1080;
+                const rightWidth = rightImg ? rightImg.width : 1920;
+                const rightHeight = rightImg ? rightImg.height : 1080;
+
+                const maxHeight = Math.max(leftHeight, rightHeight);
+                const totalWidth = leftWidth + rightWidth;
+
+                const canvas = document.createElement('canvas');
+                canvas.width = totalWidth;
+                canvas.height = maxHeight;
+                const ctx = canvas.getContext('2d');
+
+                // Fill background
+                ctx.fillStyle = this.bgColor;
+                ctx.fillRect(0, 0, totalWidth, maxHeight);
+
+                // Draw left side
+                if (leftImg) ctx.drawImage(leftImg, 0, 0);
+                const leftInkCanvas = this.renderPathsToCanvas(leftPaths, leftWidth, leftHeight);
+                ctx.drawImage(leftInkCanvas, 0, 0);
+
+                // Draw right side
+                if (rightImg) ctx.drawImage(rightImg, leftWidth, 0);
+                const rightInkCanvas = this.renderPathsToCanvas(rightPaths, rightWidth, rightHeight);
+                ctx.drawImage(rightInkCanvas, leftWidth, 0);
+
+                // Draw divider line
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(leftWidth, 0);
+                ctx.lineTo(leftWidth, maxHeight);
+                ctx.stroke();
+
+                // Download
+                const a = document.createElement('a');
+                a.download = `sfh-comparison-sidebyside-${Date.now()}.png`;
+                a.href = canvas.toDataURL();
+                a.click();
+            },
+
+            drawSideToContext(ctx, side, cx, cy, dpr, w, h) {
+                const isRight = side === 'right';
+                const img = isRight ? this.imageRight : this.imageLeft;
+                const tx = isRight ? this.txRight : this.txLeft;
+                const paths = isRight ? this.pathsRight : this.pathsLeft;
+
+                ctx.save();
+                ctx.translate(cx * dpr, cy * dpr);
+                ctx.scale(tx.k * dpr, tx.k * dpr);
+                ctx.translate(tx.x, tx.y);
+
+                if (img) {
+                    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                }
+
+                // Draw paths
+                if (paths.length > 0) {
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                    paths.forEach(p => this.renderPathToContext(ctx, p));
+                }
+
+                ctx.restore();
+            },
+
+            renderPathsToCanvas(paths, width, height) {
+                const inkCanvas = document.createElement('canvas');
+                inkCanvas.width = width;
+                inkCanvas.height = height;
+                const inkCtx = inkCanvas.getContext('2d');
+                inkCtx.translate(width / 2, height / 2);
+                inkCtx.lineCap = 'round';
+                inkCtx.lineJoin = 'round';
+
+                paths.forEach(p => {
+                    if (p.points.length < 1) return;
+                    inkCtx.beginPath();
+                    inkCtx.lineWidth = p.size;
+                    if (p.isEraser) {
+                        inkCtx.globalCompositeOperation = 'destination-out';
+                        inkCtx.strokeStyle = '#000000';
+                    } else {
+                        inkCtx.globalCompositeOperation = 'source-over';
+                        inkCtx.strokeStyle = p.color;
+                    }
+
+                    const pts = p.points;
+                    inkCtx.moveTo(pts[0].x, pts[0].y);
+                    if (pts.length < 2) inkCtx.lineTo(pts[0].x, pts[0].y);
+                    else {
+                        for (let i = 1; i < pts.length - 2; i++) {
+                            inkCtx.quadraticCurveTo(pts[i].x, pts[i].y, (pts[i].x + pts[i + 1].x) / 2, (pts[i].y + pts[i + 1].y) / 2);
+                        }
+                        const i = pts.length - 2;
+                        inkCtx.quadraticCurveTo(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
+                    }
+                    inkCtx.stroke();
+                });
+
+                return inkCanvas;
             },
 
             save(side) {
@@ -2435,44 +3445,75 @@
             updateUI() {
                 // Empty States - hide if image loaded, paths exist, or actively drawing
                 const leftEmpty = !this.imageLeft && this.pathsLeft.length === 0 && (!this.currentPath || this.currentPath.side !== 'left');
-                document.getElementById('empty-message-left').style.display = leftEmpty ? 'flex' : 'none';
+                const emptyLeftMsg = document.getElementById('empty-message-left');
+                if (emptyLeftMsg) {
+                    emptyLeftMsg.style.display = leftEmpty ? 'flex' : 'none';
+                }
 
                 if (this.isComparing) {
                     const rightEmpty = !this.imageRight && this.pathsRight.length === 0 && (!this.currentPath || this.currentPath.side !== 'right');
                     // Position message
                     const rightMsg = document.getElementById('empty-message-right');
-                    rightMsg.style.display = rightEmpty ? 'flex' : 'none';
-                    rightMsg.style.left = (this.sliderPos * 100) + '%';
-                    rightMsg.style.width = ((1 - this.sliderPos) * 100) + '%';
+                    if (rightMsg) {
+                        rightMsg.style.display = rightEmpty ? 'flex' : 'none';
+                        rightMsg.style.left = (this.sliderPos * 100) + '%';
+                        rightMsg.style.width = ((1 - this.sliderPos) * 100) + '%';
 
-                    document.getElementById('drawer-right').style.display = 'flex';
-                    document.getElementById('compare-slider').style.display = 'flex';
-                    document.getElementById('compare-slider').style.left = (this.sliderPos * 100) + '%';
-                    document.getElementById('compare-handle').style.top = (this.sliderHandleY * 100) + '%';
+                        // Opacity fade when too narrow
+                        const totalW = window.innerWidth;
+                        const leftW = totalW * this.sliderPos;
+                        const rightW = totalW * (1 - this.sliderPos);
+                        rightMsg.style.opacity = rightW < 120 ? '0' : '1';
+                        if (emptyLeftMsg) {
+                            emptyLeftMsg.style.opacity = leftW < 120 ? '0' : '1';
+                        }
+                    }
+
+                    const drawerRight = document.getElementById('drawer-right');
+                    if (drawerRight) drawerRight.style.display = 'flex';
+                    
+                    const compareSlider = document.getElementById('compare-slider');
+                    if (compareSlider) {
+                        compareSlider.style.display = 'flex';
+                        compareSlider.style.left = (this.sliderPos * 100) + '%';
+                    }
+                    
+                    const compareHandle = document.getElementById('compare-handle');
+                    if (compareHandle) {
+                        compareHandle.style.top = (this.sliderHandleY * 100) + '%';
+                    }
 
                     // Adjust left empty message width
-                    document.getElementById('empty-message-left').style.width = (this.sliderPos * 100) + '%';
-
-                    // Opacity fade when too narrow
-                    const totalW = window.innerWidth;
-                    const leftW = totalW * this.sliderPos;
-                    const rightW = totalW * (1 - this.sliderPos);
-                    document.getElementById('empty-message-left').style.opacity = leftW < 120 ? '0' : '1';
-                    rightMsg.style.opacity = rightW < 120 ? '0' : '1';
+                    if (emptyLeftMsg) {
+                        emptyLeftMsg.style.width = (this.sliderPos * 100) + '%';
+                    }
 
                 } else {
-                    document.getElementById('empty-message-right').style.display = 'none';
-                    document.getElementById('drawer-right').style.display = 'none';
-                    document.getElementById('compare-slider').style.display = 'none';
-                    document.getElementById('empty-message-left').style.width = '100%';
-                    document.getElementById('empty-message-left').style.opacity = '1';
+                    const emptyRightMsg = document.getElementById('empty-message-right');
+                    if (emptyRightMsg) emptyRightMsg.style.display = 'none';
+                    
+                    const drawerRight = document.getElementById('drawer-right');
+                    if (drawerRight) drawerRight.style.display = 'none';
+                    
+                    const compareSlider = document.getElementById('compare-slider');
+                    if (compareSlider) compareSlider.style.display = 'none';
+                    
+                    if (emptyLeftMsg) {
+                        emptyLeftMsg.style.width = '100%';
+                        emptyLeftMsg.style.opacity = '1';
+                    }
                 }
 
                 // Buttons
-                document.getElementById('btn-undo-left').disabled = this.historyLeft.length === 0;
-                document.getElementById('btn-redo-left').disabled = this.redoStackLeft.length === 0;
-                document.getElementById('btn-undo-right').disabled = this.historyRight.length === 0;
-                document.getElementById('btn-redo-right').disabled = this.redoStackRight.length === 0;
+                const btnUndoLeft = document.getElementById('btn-undo-left');
+                const btnRedoLeft = document.getElementById('btn-redo-left');
+                const btnUndoRight = document.getElementById('btn-undo-right');
+                const btnRedoRight = document.getElementById('btn-redo-right');
+                
+                if (btnUndoLeft) btnUndoLeft.disabled = this.historyLeft.length === 0;
+                if (btnRedoLeft) btnRedoLeft.disabled = this.redoStackLeft.length === 0;
+                if (btnUndoRight) btnUndoRight.disabled = this.historyRight.length === 0;
+                if (btnRedoRight) btnRedoRight.disabled = this.redoStackRight.length === 0;
 
                 // Tool active states
                 document.querySelectorAll('.tool-btn').forEach(btn => {
@@ -2544,6 +3585,27 @@
                 if (btnDuplicate) {
                     btnDuplicate.style.display = (this.isComparing && this.imageLeft) ? 'block' : 'none';
                 }
+
+                // Lock button state
+                const btnLock = document.getElementById('btn-lock-transforms');
+                const iconLock = document.getElementById('icon-lock');
+                if (btnLock && iconLock) {
+                    if (this.transformsLocked) {
+                        btnLock.style.background = 'var(--accent-blue)';
+                        btnLock.style.color = '#fff';
+                        btnLock.style.borderColor = 'transparent';
+                        btnLock.title = 'Unlock zoom and pan';
+                        // Locked icon
+                        iconLock.innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>';
+                    } else {
+                        btnLock.style.background = '';
+                        btnLock.style.color = 'var(--text-muted)';
+                        btnLock.style.borderColor = 'var(--border-btn)';
+                        btnLock.title = 'Lock zoom and pan together';
+                        // Unlocked icon
+                        iconLock.innerHTML = '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path>';
+                    }
+                }
             },
 
             isMobile() {
@@ -2567,11 +3629,22 @@
 
                 const key = e.key.toLowerCase();
                 
-                // ESC to close settings modal
+                // ESC to close modals
                 if (key === 'escape') {
-                    const modal = document.getElementById('settings-modal');
-                    if (modal.classList.contains('show')) {
+                    const settingsModal = document.getElementById('settings-modal');
+                    const saveModal = document.getElementById('save-modal');
+                    const tutorialModal = document.getElementById('tutorial-modal');
+                    
+                    if (tutorialModal.classList.contains('show')) {
+                        this.closeTutorial();
+                        return;
+                    }
+                    if (settingsModal.classList.contains('show')) {
                         this.closeSettings();
+                        return;
+                    }
+                    if (saveModal.classList.contains('show')) {
+                        this.closeSaveDialog();
                         return;
                     }
                 }
@@ -2604,6 +3677,20 @@
                 }, 500);
             },
 
+            toggleTransformLock() {
+                this.transformsLocked = !this.transformsLocked;
+                
+                // When locking, reset both canvases to aligned starting position
+                if (this.transformsLocked && this.isComparing) {
+                    // Reset both transforms to centered, fitted view
+                    if (this.imageLeft) this.fitImage('left');
+                    if (this.imageRight) this.fitImage('right');
+                    this.scheduleDraw();
+                }
+                
+                this.updateUI();
+            },
+
             openSettings() {
                 document.getElementById('settings-modal').classList.add('show');
                 this.updateUI(); // Update active states
@@ -2611,6 +3698,14 @@
 
             closeSettings() {
                 document.getElementById('settings-modal').classList.remove('show');
+            },
+
+            openTutorial() {
+                document.getElementById('tutorial-modal').classList.add('show');
+            },
+
+            closeTutorial() {
+                document.getElementById('tutorial-modal').classList.remove('show');
             }
         };
 
