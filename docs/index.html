@@ -201,8 +201,8 @@
         }
 
         #drawer-left .drawer-handle {
-            width: 32px;
-            height: 64px;
+            width: 48px;
+            height: 96px;
             border-left: none;
             border-radius: 0 12px 12px 0;
             margin-top: 16px;
@@ -225,8 +225,8 @@
         }
 
         #drawer-right .drawer-handle {
-            width: 32px;
-            height: 64px;
+            width: 48px;
+            height: 96px;
             border-right: none;
             border-radius: 12px 0 0 12px;
             margin-top: 16px;
@@ -250,8 +250,8 @@
         }
 
         #drawer-bottom .drawer-handle {
-            width: 80px;
-            height: 32px;
+            width: 120px;
+            height: 48px;
             border-bottom: none;
             border-radius: 12px 12px 0 0;
             margin-bottom: -1px;
@@ -409,58 +409,155 @@
             display: none;
         }
 
-        .color-swatch.active {
+            color-swatch.active {
             transform: scale(1.12);
             box-shadow: 0 0 0 2px var(--bg-color), 0 0 0 4px rgba(255, 255, 255, 0.75);
         }
 
-        /* Background Color Controls */
-        #bg-color-controls {
-            display: flex;
-            gap: 10px;
+        /* Settings Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
             align-items: center;
             justify-content: center;
-            padding: 6px 12px 8px;
-            border-top: 1px solid var(--border-color);
+            animation: fadeIn 0.2s ease;
         }
 
-        .bg-label {
-            font-size: 10px;
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-dialog {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 420px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            animation: slideUp 0.25s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--text-main);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .settings-label {
+            font-size: 12px;
             font-weight: 600;
             color: var(--text-muted);
             letter-spacing: 0.06em;
             text-transform: uppercase;
+            margin-bottom: 12px;
+            display: block;
         }
 
-        .bg-color-row {
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+            gap: 12px;
+        }
+
+        .settings-color-option {
             display: flex;
-            gap: 8px;
+            flex-direction: column;
             align-items: center;
-        }
-
-        .bg-color-swatch {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            border: 2px solid rgba(128, 128, 128, 0.35);
+            gap: 6px;
             cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-            flex-shrink: 0;
         }
 
-        .bg-color-swatch:hover {
-            transform: scale(1.08);
+        .settings-color-swatch {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            border: 2px solid rgba(128, 128, 128, 0.3);
+            transition: all 0.2s ease;
+            position: relative;
         }
 
-        .bg-color-swatch.active {
-            transform: scale(1.15);
-            box-shadow: 0 0 0 2px var(--panel-bg), 0 0 0 4px rgba(255, 255, 255, 0.7);
+        .settings-color-option:hover .settings-color-swatch {
+            transform: scale(1.05);
+            border-color: rgba(255, 255, 255, 0.4);
         }
 
-        .bg-color-swatch:focus-visible {
-            outline: 2px solid var(--accent-blue);
-            outline-offset: 3px;
-            border-radius: 50%;
+        .settings-color-swatch.active {
+            border-color: var(--accent-blue);
+            border-width: 3px;
+            transform: scale(1.05);
+        }
+
+        .settings-color-swatch.active::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--accent-blue);
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+        }
+
+        .settings-color-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: center;
         }
 
         /* Slider */
@@ -666,17 +763,6 @@
             .color-row {
                 gap: 12px;
                 padding: 8px 12px 14px;
-            }
-
-            /* Background color controls - compact for mobile */
-            #bg-color-controls {
-                padding: 8px 12px 10px;
-                gap: 8px;
-            }
-
-            .bg-color-swatch {
-                width: 36px;
-                height: 36px;
             }
 
             /* Range sliders — bigger thumb */
@@ -1203,6 +1289,13 @@
                             <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
                         </svg>
                     </button>
+                    <button class="btn-circle" id="btn-settings" onclick="app.openSettings()"
+                        title="Settings" style="color:var(--text-muted)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
                 </div>
                 <div class="drawer-handle" onclick="app.toggleDrawer('left')">
                     <svg viewBox="0 0 24 24" id="icon-handle-left">
@@ -1222,6 +1315,13 @@
                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                             <circle cx="8.5" cy="8.5" r="1.5"></circle>
                             <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                    </button>
+                    <button class="btn-circle" id="btn-duplicate" onclick="app.duplicateToRight()" 
+                        title="Duplicate left image" style="color:var(--text-muted); border-color:var(--border-btn)">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                         </svg>
                     </button>
                     <div class="separator"></div>
@@ -1362,35 +1462,50 @@
                                 oninput="app.setMagnetStrength(this.value)">
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
 
-                    <!-- Background Color Selector -->
-                    <div id="bg-color-controls">
-                        <span class="bg-label">BACKGROUND</span>
-                        <div class="bg-color-row" role="radiogroup" aria-label="Background colour">
-                            <div class="bg-color-swatch" style="background:#0a0a0e"
-                                onclick="app.setBgColor('#0a0a0e')" data-color="#0a0a0e"
-                                title="Dark (Default)" tabindex="0" role="radio" aria-label="Dark"
-                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#0a0a0e')}"></div>
-                            <div class="bg-color-swatch" style="background:#1a1a1a"
-                                onclick="app.setBgColor('#1a1a1a')" data-color="#1a1a1a"
-                                title="Charcoal" tabindex="0" role="radio" aria-label="Charcoal"
-                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#1a1a1a')}"></div>
-                            <div class="bg-color-swatch" style="background:#2a2a2a"
-                                onclick="app.setBgColor('#2a2a2a')" data-color="#2a2a2a"
-                                title="Gray" tabindex="0" role="radio" aria-label="Gray"
-                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#2a2a2a')}"></div>
-                            <div class="bg-color-swatch" style="background:#ffffff"
-                                onclick="app.setBgColor('#ffffff')" data-color="#ffffff"
-                                title="White" tabindex="0" role="radio" aria-label="White"
-                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#ffffff')}"></div>
-                            <div class="bg-color-swatch" style="background:#f0eadc"
-                                onclick="app.setBgColor('#f0eadc')" data-color="#f0eadc"
-                                title="Light Beige" tabindex="0" role="radio" aria-label="Light Beige"
-                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#f0eadc')}"></div>
-                            <div class="bg-color-swatch" style="background:#8b7d6b"
-                                onclick="app.setBgColor('#8b7d6b')" data-color="#8b7d6b"
-                                title="Dark Taupe" tabindex="0" role="radio" aria-label="Dark Taupe"
-                                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();app.setBgColor('#8b7d6b')}"></div>
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal-overlay" onclick="if(event.target===this) app.closeSettings()">
+            <div class="modal-dialog">
+                <div class="modal-header">
+                    <h2 class="modal-title">Settings</h2>
+                    <button class="modal-close" onclick="app.closeSettings()" aria-label="Close settings">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="settings-section">
+                        <label class="settings-label">Background Color</label>
+                        <div class="settings-grid">
+                            <div class="settings-color-option" onclick="app.setBgColor('#0a0a0e')">
+                                <div class="settings-color-swatch" data-color="#0a0a0e" style="background:#0a0a0e"></div>
+                                <span class="settings-color-label">Dark</span>
+                            </div>
+                            <div class="settings-color-option" onclick="app.setBgColor('#1a1a1a')">
+                                <div class="settings-color-swatch" data-color="#1a1a1a" style="background:#1a1a1a"></div>
+                                <span class="settings-color-label">Charcoal</span>
+                            </div>
+                            <div class="settings-color-option" onclick="app.setBgColor('#2a2a2a')">
+                                <div class="settings-color-swatch" data-color="#2a2a2a" style="background:#2a2a2a"></div>
+                                <span class="settings-color-label">Gray</span>
+                            </div>
+                            <div class="settings-color-option" onclick="app.setBgColor('#ffffff')">
+                                <div class="settings-color-swatch" data-color="#ffffff" style="background:#ffffff"></div>
+                                <span class="settings-color-label">White</span>
+                            </div>
+                            <div class="settings-color-option" onclick="app.setBgColor('#f0eadc')">
+                                <div class="settings-color-swatch" data-color="#f0eadc" style="background:#f0eadc"></div>
+                                <span class="settings-color-label">Beige</span>
+                            </div>
+                            <div class="settings-color-option" onclick="app.setBgColor('#8b7d6b')">
+                                <div class="settings-color-swatch" data-color="#8b7d6b" style="background:#8b7d6b"></div>
+                                <span class="settings-color-label">Taupe</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2129,13 +2244,29 @@
 
             toggleCompare() {
                 this.isComparing = !this.isComparing;
-
-                if (this.isComparing && !this.imageRight) {
-                    // Maybe duplicate left image? No, wait for user load.
-                }
-
                 this.updateUI();
                 this.draw();
+            },
+
+            duplicateToRight() {
+                if (!this.imageLeft) {
+                    alert('Please load an image first.');
+                    return;
+                }
+                
+                // Duplicate image
+                this.imageRight = this.imageLeft;
+                this.edgeMapRight = this.edgeMapLeft;
+                
+                // Copy transform for consistent view
+                this.txRight = { ...this.txLeft };
+                
+                // Optionally duplicate paths (starting fresh for comparison)
+                // Uncomment next line to also copy annotations:
+                // this.pathsRight = JSON.parse(JSON.stringify(this.pathsLeft));
+                
+                this.updateUI();
+                this.scheduleDraw();
             },
 
             toggleFullscreen() {
@@ -2353,8 +2484,8 @@
                     sw.classList.toggle('active', sw.dataset.color === this.color && this.tool !== 'eraser');
                 });
 
-                // Background color active states
-                document.querySelectorAll('.bg-color-swatch').forEach(sw => {
+                // Background color active states (in settings modal)
+                document.querySelectorAll('.settings-color-swatch').forEach(sw => {
                     sw.classList.toggle('active', sw.dataset.color === this.bgColor);
                 });
 
@@ -2407,6 +2538,12 @@
                 if (magContainer) {
                     magContainer.style.display = isMagnet ? 'flex' : 'none';
                 }
+
+                // Duplicate button visibility
+                const btnDuplicate = document.getElementById('btn-duplicate');
+                if (btnDuplicate) {
+                    btnDuplicate.style.display = (this.isComparing && this.imageLeft) ? 'block' : 'none';
+                }
             },
 
             isMobile() {
@@ -2429,6 +2566,16 @@
                 if (document.getElementById('splash-screen').style.display !== 'none') return;
 
                 const key = e.key.toLowerCase();
+                
+                // ESC to close settings modal
+                if (key === 'escape') {
+                    const modal = document.getElementById('settings-modal');
+                    if (modal.classList.contains('show')) {
+                        this.closeSettings();
+                        return;
+                    }
+                }
+
                 if (!e.ctrlKey && !e.metaKey) {
                     switch (key) {
                         case 'p': this.setTool('pen'); break;
@@ -2455,6 +2602,15 @@
                 setTimeout(() => {
                     el.style.display = 'none';
                 }, 500);
+            },
+
+            openSettings() {
+                document.getElementById('settings-modal').classList.add('show');
+                this.updateUI(); // Update active states
+            },
+
+            closeSettings() {
+                document.getElementById('settings-modal').classList.remove('show');
             }
         };
 
